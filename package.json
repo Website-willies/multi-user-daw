@@ -1,0 +1,23 @@
+{
+  "name": "multi-user-daw",
+  "version": "1.0.0",
+  "description": "Subject to modification: multi-user daw, allowing for multiple clients to connect and place sounds on a midi-like timeline.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liamxostrander/multi-user-daw.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/liamxostrander/multi-user-daw/issues"
+  },
+  "homepage": "https://github.com/liamxostrander/multi-user-daw#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
