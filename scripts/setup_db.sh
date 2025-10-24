@@ -1,9 +1,11 @@
 #!/bin/bash
 set -e
 
-export $(grep -v '^#' .env | xargs)
+cd "$(dirname "$0")/.."
 
-DBNAME=$PGDATABASE
+set -a
+source .env
+set +a
 
 DBNAME="multi_user_daw"
 if ! psql -lqt | cut -d \| -f 1 | grep -qw $DBNAME; then
