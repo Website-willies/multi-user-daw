@@ -6,7 +6,37 @@
 </head>
 <body>
 
-<p>Welcome from the Website Willies!</p>
+  <p1>Welcome from the Website Willies!</p1>
+  <button id="daw" type="button">DAW</button> 
 
 </body>
+
+<script>
+
+  let button = document.getElementById("daw")
+
+  button.addEventListener("click", () => {
+
+    fetch('/assign').then((response) => {
+
+            response.json().then((body) => {
+
+              console.log(body);
+              document.cookie = body.uuid;
+              window.location.replace(`/session.html`);
+                    
+            }).catch(error => {
+                // will be executed if attempt
+                // to parse body as JSON crashes
+                console.log(error)
+            });
+
+    }).catch(error => {
+        // will be executed if first promise crashes
+        console.log(error)
+    });
+
+  });
+  
+</script>
 </html>
