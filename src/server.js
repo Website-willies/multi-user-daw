@@ -7,6 +7,7 @@ let app = express();
 
 app.use(express.json());
 app.use(express.static("public"));
+app.use("/sounds", express.static("server/sounds"));
 
 app.listen(port, hostname, () => {
   console.log(`http://${hostname}:${port}`);
