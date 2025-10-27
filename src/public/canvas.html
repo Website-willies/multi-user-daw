@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas API Test</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            cursor: crosshair;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <label>Color: <input type="color" id="color" value="#000000"></label>
+    <button id="clear">Clear</button>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let canvasCtx = canvas.getContext("2d");
+        let colorInput = document.getElementById("color");
+        let clearButton = document.getElementById("clear");
+
+        let isDrawing = false;
+        let currentColor = "#000000";
+
+        canvasCtx.fillStyle = "white";
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        clearButton.addEventListener("click", () => {
+            canvasCtx.fillStyle = "white";
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        colorInput.addEventListener("input", (event) => {
+            currentColor = event.target.value;
+        });
+
+        canvas.addEventListener('mousedown', (event) => {
+            isDrawing = true;
+            let boundRect = canvas.getBoundingClientRect();
+            canvasCtx.beginPath();
+            // Needs to be measured from the canvas edge not the window edge.
+            canvasCtx.moveTo(event.clientX - boundRect.left, event.clientY - boundRect.top)
+        });
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (!isDrawing) return;
+
+            let boundRect = canvas.getBoundingClientRect();
+            canvasCtx.strokeStyle = currentColor;
+            canvasCtx.lineWidth = 2;
+            canvasCtx.lineCap = 'round';
+            canvasCtx.lineTo(event.clientX - boundRect.left, event.clientY - boundRect.top);
+            canvasCtx.stroke();
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+    </script>
+</body>
+</html>
