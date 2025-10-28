@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Subject to modification: multi-user daw, allowing for multiple clients to connect and place sounds on a midi-like timeline.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "cd src && node server.js",
     "setup-db": "bash scripts/setup_db.sh",
-    "migrate": "node-pg-migrate up",
-    "reset-db": "node-pg-migrate reset",
+    "migrate": "node-pg-migrate",
     "seed": "node src/db/seed_sounds.js"
   },
   "repository": {

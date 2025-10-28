@@ -5,11 +5,6 @@ let app = express();
 let hostname = "localhost";
 let port = 3000;
 
-//TODO: move uuid storage from in-memory to DB
-//Want to discuss usage and schema first
-
-let uuids = {}
-
 app.use(express.json());
 app.use(express.static("public"));
 
@@ -30,7 +25,6 @@ app.get("/assign", (req, res) => {
   res.status(200);
   res.contentType('application/json');
   let id = crypto.randomUUID()
-  uuids[id] = "empty"
   res.json({ "uuid": id });
 
 });
