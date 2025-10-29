@@ -3,8 +3,13 @@
   "version": "1.0.0",
   "description": "Subject to modification: multi-user daw, allowing for multiple clients to connect and place sounds on a midi-like timeline.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cd src && node server.js",
+    "setup-db": "bash scripts/setup_db.sh",
+    "migrate": "node-pg-migrate",
+    "seed": "node src/db/seed_sounds.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +23,10 @@
   },
   "homepage": "https://github.com/liamxostrander/multi-user-daw#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "node-pg-migrate": "^8.0.3",
+    "pg": "^8.16.3",
+    "uuid": "^13.0.0"
   }
 }
