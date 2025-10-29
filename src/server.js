@@ -1,9 +1,17 @@
 import express from "express";
 import pool from "./db/pool.js";
+import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 let app = express();
 
 let hostname = "localhost";
 let port = 3000;
+
+
 
 app.use(express.json());
 app.use(express.static("public"));
@@ -27,6 +35,11 @@ app.get("/assign", (req, res) => {
   let id = crypto.randomUUID()
   res.json({ "uuid": id });
 
+});
+
+app.get("/track",  (req, res) => {
+  res.status(200);
+  res.sendFile(path.join(__dirname, '/private/track.html')); 
 });
 
 app.listen(port, hostname, () => {

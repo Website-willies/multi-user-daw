@@ -9,12 +9,12 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-    pgm.createTable('sounds', {
+  pgm.createTable('sounds', {
     id: 'id',
-    name: { type: 'text', notNull: true, unique: true },
-    file_path: { type: 'text', notNull: true },
-    category: { type: 'text' },
-    created_at: { type: 'timestamp', default: pgm.func('current_timestamp') }
+    uuid: { type: 'uuid', notNull: true },
+    sound: { type: 'text', notNull: true },
+    pitch: { type: 'integer', notNull: true },
+    time: { type: 'integer', notNull: true },
   });
 };
 
