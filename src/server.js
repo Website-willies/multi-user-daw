@@ -37,6 +37,8 @@ app.get("/assign", (req, res) => {
 
 });
 
+app.use("/track", express.static(path.join(__dirname, "private")));
+
 app.get("/track",  (req, res) => {
   res.status(200);
   res.sendFile(path.join(__dirname, '/private/track.html')); 
