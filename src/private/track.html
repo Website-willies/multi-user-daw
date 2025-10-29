@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your DAW</title>
+        <link rel="stylesheet" type="text/css" href="track.css">
+    </head>
+    <body>
+        <div class="controls">
+            <button id="addInstrument">Add Instrument</button>
+            <button id="clearAll">Clear All</button>
+        </div>
+        <div id="tracks"></div>
+        <div class="modal" id="instrument-modal">
+            <div class="modal-content">
+                <h2>Select Instrument</h2>
+                <div class="instrument-list">
+                    <button class="instrument-btn" data-instrument="Hi-Hat" data-color="#ff6b6b">Hi-Hat</button>
+                    <button class="instrument-btn" data-instrument="Snare" data-color="#4ecdc4">Snare</button>
+                    <button class="instrument-btn" data-instrument="Kick" data-color="#45b7d1">Kick</button>
+                    <button class="instrument-btn" data-instrument="Tom" data-color="#f9ca24">Tom</button>
+                    <button class="instrument-btn" data-instrument="Cymbal" data-color="#6c5ce7">Cymbal</button>
+                    <button class="instrument-btn" data-instrument="Clap" data-color="#a29bfe">Clap</button>
+                    <button class="cancel-btn" id="cancelBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script src="track.js"></script>
+    <script>
+        // Inline for fetch code
+
+    </script>
+</html>

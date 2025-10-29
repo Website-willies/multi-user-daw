@@ -1,0 +1,132 @@
+let addInstrumentBtn = document.getElementById("addInstrument");
+let clearAllBtn = document.getElementById("clearAll");
+let modal = document.getElementById("instrument-modal");
+let cancelBtn = document.getElementById("cancelBtn");
+let instrumentBtns = document.getElementsByClassName("instrument-btn");
+let tracksContainer = document.getElementById("tracks");
+
+let gridSize = 20;
+let canvasWidth = 1200;
+let canvasHeight = 80;
+let tracks = []
+
+addInstrumentBtn.addEventListener('click', () => {
+    modal.classList.add('active');
+});
+
+cancelBtn.addEventListener('click', () => {
+    modal.classList.remove('active');
+});
+
+function buildTrack(btn, name, color){
+    let trackDiv = document.createElement('div');
+    trackDiv.className = 'track';
+    let trackHeader = document.createElement('div');
+    trackHeader.className = 'track-header';
+    let trackName = document.createElement('span');
+    trackName.className = 'track-name';
+    trackName.textContent = name;
+    let removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = 'Remove track';
+    let clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear track';
+
+    let canvas = document.createElement('canvas');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    let ctx = canvas.getContext('2d');
+
+    trackHeader.appendChild(trackName);
+    trackHeader.appendChild(clearBtn);
+    trackHeader.appendChild(removeBtn);
+    trackDiv.appendChild(trackHeader);
+    trackDiv.appendChild(canvas);
+    tracksContainer.appendChild(trackDiv);
+
+    let track = {
+        name, 
+        color,
+        canvas,
+        ctx,
+        removeBtn,
+        clearBtn,
+        notes: [],
+        isDrawing: false,
+        element: trackDiv
+    }
+
+    clearBtn.addEventListener('click', () => {
+        initCanvas(track);
+    });
+
+    removeBtn.addEventListener('click', () => {
+        btn.disabled = false;
+        tracksContainer.removeChild(trackDiv);
+        let trackIdx = tracks.indexOf(track);
+        tracks.splice(trackIdx, 1);
+    });
+    
+    return track;
+}
+
+function initCanvas(track){
+    let ctx = track.ctx;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    
+    for (let x = 0; x <= canvasWidth; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvasHeight);
+        ctx.stroke();
+    }
+    
+    for (let y = 0; y <= canvasHeight; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvasWidth, y);
+        ctx.stroke();
+    }
+    track.notes = [];
+}
+
+function addTrack(instrumentBtn, instrumentName, instrumentColor){
+    // Build track HTML
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor);
+    tracks.push(track);
+    initCanvas(track);
+    canvasEvents(track);
+}
+
+function canvasEvents(track){
+    track.canvas.addEventListener('mousedown', (e) => {
+        track.isDrawing = true;
+        let boundingRect = track.canvas.getBoundingClientRect();
+        let time = Math.floor((e.clientX - boundingRect.left)/gridSize) * gridSize;
+        let pitch = Math.floor((e.clientY - boundingRect.top)/gridSize) * gridSize;
+
+        track.notes.push({time, pitch});
+        track.ctx.fillStyle = track.color;
+        track.ctx.fillRect(time, pitch, gridSize, gridSize);
+    });
+}
+
+for(let instrumentBtn of instrumentBtns){
+    instrumentBtn.addEventListener('click', () => {
+        let instrumentName = instrumentBtn.dataset.instrument;
+        let instrumentColor = instrumentBtn.dataset.color;
+        instrumentBtn.disabled = true;
+        addTrack(instrumentBtn, instrumentName, instrumentColor);
+        modal.classList.remove('active');
+    });
+}
+
+clearAllBtn.addEventListener('click', () => {
+    for(let track of tracks){
+        initCanvas(track);
+    }
+});
