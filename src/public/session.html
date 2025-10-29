@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MultiUserDaw</title>
+</head>
+<body>
+
+  <div id="uuid-display"></div>
+  <button id="back" type="button">Back</button> 
+
+  <script type="module">
+    let uuidDiv = document.getElementById("uuid-display");
+    let button = document.getElementById("back");
+
+    if (document.cookie === ""){
+      fetch('/assign').then((response) => {
+
+              response.json().then((body) => {
+
+                console.log(body);
+                document.cookie = body.uuid;
+                uuidDiv.textContent = `Session ID: ${body.uuid}`;
+                      
+              }).catch(error => {
+                  // will be executed if attempt
+                  // to parse body as JSON crashes
+                  console.log(error)
+              });
+
+      }).catch(error => {
+          // will be executed if first promise crashes
+          console.log(error)
+      });
+    } else {
+      let uuid = document.cookie;
+      uuidDiv.textContent = `Session ID: ${uuid}`;
+    }
+
+    
+
+    button.addEventListener("click", () => {
+      window.location.replace(`/`);
+    });
+  
+</script>
+</html>

@@ -6,8 +6,7 @@ dotenv.config();
 const { Pool } = pg;
 
 const connectionString =
-  process.env.DATABASE_URL ||
-  `postgres://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+  process.env.DATABASE_URL
 
 // Create a connection pool
 const pool = new Pool({

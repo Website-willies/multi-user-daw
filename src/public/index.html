@@ -6,7 +6,18 @@
 </head>
 <body>
 
-<p>Welcome from the Website Willies!</p>
+  <p1>Welcome from the Website Willies!</p1>
+  <button id="daw" type="button">DAW</button> 
 
 </body>
+
+<script>
+
+  let button = document.getElementById("daw")
+
+  button.addEventListener("click", () => {
+      window.location.replace(`/session.html`);
+  });
+  
+</script>
 </html>
