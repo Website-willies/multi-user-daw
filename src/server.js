@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const soundsPath = path.join(__dirname, "sounds");
+const oneshotsPath = path.join(__dirname, "oneshots");
 
 let app = express();
 let hostname = "localhost";
@@ -14,7 +14,7 @@ let port = 3000;
 
 app.use(express.json());
 app.use(express.static("src/public"));
-app.use("/sounds", express.static(soundsPath));
+app.use("/oneshots", express.static(oneshotsPath));
 
 app.get("/assign", (req, res) => {
   res.status(200).json({ "uuid": crypto.randomUUID() })
@@ -26,6 +26,5 @@ app.get("/track",  (req, res) => {
 });
 
 app.listen(port, hostname, () => {
-  console.log("Serving sounds from:", soundsPath);
   console.log(`http://${hostname}:${port}`);
 });

@@ -8,7 +8,7 @@ let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
 let tracksContainer = document.getElementById("tracks");
 let bpm = 120;
-let beatDivisions = 8;
+let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 
 
@@ -163,7 +163,7 @@ async function playSequence(events) {
 
     const buffers = {};
 
-    //Sounds should already be sorted by timestep in the sql query
+    // oneshots should already be sorted by timestep in the sql query
     const urls = events.map(e => e.url);
 
     for (const url of urls) {
@@ -184,28 +184,28 @@ async function playSequence(events) {
 
 playAllBtn.addEventListener('click', () => {
     let temp_seq = [
-        { "url": "/sounds/Kick_1.wav", "time": 0, "pitch": 1.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 0, "pitch": 1.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 0, "pitch": 2.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 1, "pitch": 5.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 2, "pitch": 1.3 },
-        { "url": "/sounds/Snare_1.wav", "time": 3, "pitch": 0.9 },
-        { "url": "/sounds/Kick_1.wav", "time": 5, "pitch": 1.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 5, "pitch": 1.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 5, "pitch": 2.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 6, "pitch": 5.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 7, "pitch": 1.3 },
-        { "url": "/sounds/Kick_1.wav", "time": 8, "pitch": 1.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 8, "pitch": 1.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 8, "pitch": 2.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 9, "pitch": 5.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 10, "pitch": 1.3 },
-        { "url": "/sounds/Snare_1.wav", "time": 11, "pitch": 0.9 },
-        { "url": "/sounds/Kick_1.wav", "time": 13, "pitch": 1.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 13, "pitch": 1.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 13, "pitch": 2.0 },
-        { "url": "/sounds/Snare_1.wav", "time": 14, "pitch": 5.0 },
-        { "url": "/sounds/Hi-Hat_1.wav", "time": 15, "pitch": 1.3 },
+        { "url": "/oneshots/Kick_1.wav", "time": 0, "pitch": 1.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 0, "pitch": 1.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 0, "pitch": 2.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 1, "pitch": 5.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 2, "pitch": 1.3 },
+        { "url": "/oneshots/Snare_1.wav", "time": 3, "pitch": 0.9 },
+        { "url": "/oneshots/Kick_1.wav", "time": 5, "pitch": 1.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 5, "pitch": 1.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 5, "pitch": 2.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 6, "pitch": 5.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 7, "pitch": 1.3 },
+        { "url": "/oneshots/Kick_1.wav", "time": 8, "pitch": 1.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 8, "pitch": 1.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 8, "pitch": 2.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 9, "pitch": 5.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 10, "pitch": 1.3 },
+        { "url": "/oneshots/Snare_1.wav", "time": 11, "pitch": 0.9 },
+        { "url": "/oneshots/Kick_1.wav", "time": 13, "pitch": 1.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 13, "pitch": 1.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 13, "pitch": 2.0 },
+        { "url": "/oneshots/Snare_1.wav", "time": 14, "pitch": 5.0 },
+        { "url": "/oneshots/Hi-Hat_1.wav", "time": 15, "pitch": 1.3 },
     ];
     playSequence(temp_seq);
 });
