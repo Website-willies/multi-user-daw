@@ -119,6 +119,18 @@ function canvasEvents(track){
         track.notes.push({time, pitch});
         track.ctx.fillStyle = track.color;
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
+        playSequence([{
+            "url": "/oneshots/"+track.name+"_1.wav",
+            "time": 0,
+            "pitch": ((60 - pitch)/80) + 1
+        }]);
+        console.log([{
+            "url": "/oneshots/"+track.name+"_1.wav",
+            "time": 0,
+            "pitch": pitch
+        }]);
+        // "url": "/oneshots/Kick_1.wav", "time": 0, "pitch": 1.0 
+        
     });
 }
 
@@ -182,30 +194,23 @@ async function playSequence(events) {
     }
 }
 
+function compareByTime(a, b) 
+{
+    return a.time - b.time;
+}
+
 playAllBtn.addEventListener('click', () => {
-    let temp_seq = [
-        { "url": "/oneshots/Kick_1.wav", "time": 0, "pitch": 1.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 0, "pitch": 1.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 0, "pitch": 2.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 1, "pitch": 5.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 2, "pitch": 1.3 },
-        { "url": "/oneshots/Snare_1.wav", "time": 3, "pitch": 0.9 },
-        { "url": "/oneshots/Kick_1.wav", "time": 5, "pitch": 1.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 5, "pitch": 1.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 5, "pitch": 2.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 6, "pitch": 5.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 7, "pitch": 1.3 },
-        { "url": "/oneshots/Kick_1.wav", "time": 8, "pitch": 1.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 8, "pitch": 1.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 8, "pitch": 2.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 9, "pitch": 5.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 10, "pitch": 1.3 },
-        { "url": "/oneshots/Snare_1.wav", "time": 11, "pitch": 0.9 },
-        { "url": "/oneshots/Kick_1.wav", "time": 13, "pitch": 1.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 13, "pitch": 1.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 13, "pitch": 2.0 },
-        { "url": "/oneshots/Snare_1.wav", "time": 14, "pitch": 5.0 },
-        { "url": "/oneshots/Hi-Hat_1.wav", "time": 15, "pitch": 1.3 },
-    ];
-    playSequence(temp_seq);
+    let sequence = [];
+    for (let track of tracks){
+        for (let oneshot of track.notes){
+            sequence.push({
+                "url": "/oneshots/"+track.name+"_1.wav",
+                "time": oneshot.time / 20,
+                "pitch": ((60 - oneshot.pitch)/80) + 1
+            });
+        }
+    }
+    sequence.sort(compareByTime);
+    console.log(sequence);
+    playSequence(sequence);
 });
