@@ -123,14 +123,7 @@ function canvasEvents(track){
             "url": "/oneshots/"+track.name+"_1.wav",
             "time": 0,
             "pitch": ((60 - pitch)/80) + 1
-        }]);
-        console.log([{
-            "url": "/oneshots/"+track.name+"_1.wav",
-            "time": 0,
-            "pitch": pitch
-        }]);
-        // "url": "/oneshots/Kick_1.wav", "time": 0, "pitch": 1.0 
-        
+        }]);      
     });
 }
 
@@ -211,6 +204,5 @@ playAllBtn.addEventListener('click', () => {
         }
     }
     sequence.sort(compareByTime);
-    console.log(sequence);
     playSequence(sequence);
 });
