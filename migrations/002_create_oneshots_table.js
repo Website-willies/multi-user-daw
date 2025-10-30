@@ -9,12 +9,10 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-    pgm.createTable('sounds', {
+    pgm.createTable('oneshots', {
         id: 'id',
-        uuid: { type: 'uuid', notNull: true },
-        sound: { type: 'text', notNull: true },
-        pitch: { type: 'integer', notNull: true },
-        time: { type: 'integer', notNull: true },
+        name: { type: 'text', notNull: true, unique: true },
+        filepath: { type: 'text', notNull: true },
     });
 };
 
@@ -24,5 +22,5 @@ export const up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-    pgm.dropTable('sounds');
+    pgm.dropTable('oneshots');
 };

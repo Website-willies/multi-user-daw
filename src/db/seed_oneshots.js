@@ -2,21 +2,21 @@ import fs from 'fs';
 import path from 'path';
 import pool from './pool.js';
 
-const soundsDir = path.resolve('./src/sounds');
+const oneshotsDir = path.resolve('./src/oneshots');
 
-async function seedSounds() {
-  const files = fs.readdirSync(soundsDir);
+async function seedOneshots() {
+  const files = fs.readdirSync(oneshotsDir);
 
   for (const file of files) {
     const ext = path.extname(file);
     if (!['.wav', '.mp3', '.ogg'].includes(ext)) continue;
 
     const name = path.basename(file, ext);
-    const filePath = `/sounds/${file}`;
+    const filePath = `/oneshots/${file}`;
 
     await pool.query(
       `
-      INSERT INTO sounds (name, file_path)
+      INSERT INTO oneshots (name, filepath)
       VALUES ($1, $2)
       ON CONFLICT (name) DO NOTHING;
       `,
@@ -24,11 +24,11 @@ async function seedSounds() {
     );
   }
 
-  console.log('Sounds seeded!');
+  console.log('Oneshots seeded!');
   process.exit(0);
 }
 
-seedSounds().catch(err => {
-  console.error('Error seeding sounds:', err);
+seedOneshots().catch(err => {
+  console.error('Error seeding oneshots:', err);
   process.exit(1);
 });
