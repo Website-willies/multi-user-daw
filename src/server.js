@@ -4,20 +4,17 @@ import path from "path";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-import soundRoutes from "./routes/sounds.js";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-let app = express();
+const soundsPath = path.join(__dirname, "sounds");
 
+let app = express();
 let hostname = "localhost";
 let port = 3000;
 
 app.use(express.json());
 app.use(express.static("src/public"));
-
-app.use("/sounds", express.static("server/sounds"));
-app.use("/sounds", soundRoutes);
+app.use("/sounds", express.static(soundsPath));
 
 app.get("/assign", (req, res) => {
   res.status(200).json({ "uuid": crypto.randomUUID() })
@@ -29,5 +26,6 @@ app.get("/track",  (req, res) => {
 });
 
 app.listen(port, hostname, () => {
+  console.log("Serving sounds from:", soundsPath);
   console.log(`http://${hostname}:${port}`);
 });

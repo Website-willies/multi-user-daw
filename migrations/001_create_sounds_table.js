@@ -9,13 +9,13 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-  pgm.createTable('sounds', {
-    id: 'id',
-    uuid: { type: 'uuid', notNull: true },
-    sound: { type: 'text', notNull: true },
-    pitch: { type: 'integer', notNull: true },
-    time: { type: 'integer', notNull: true },
-  });
+    pgm.createTable('sounds', {
+        id: 'id',
+        uuid: { type: 'uuid', notNull: true },
+        sound: { type: 'text', notNull: true },
+        pitch: { type: 'integer', notNull: true },
+        time: { type: 'integer', notNull: true },
+    });
 };
 
 /**
