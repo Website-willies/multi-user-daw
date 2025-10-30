@@ -22,11 +22,6 @@ app.get("/assign", (req, res) => {
   res.status(200).json({ "uuid": crypto.randomUUID() })
 });
 
-app.use("/track", express.static(path.join(__dirname, "private")));
-app.get("/track",  (req, res) => {
-  res.status(200).sendFile(path.join(__dirname, '/private/track.html')); 
-});
-
 app.listen(port, hostname, () => {
   console.log(`http://${hostname}:${port}`);
 });

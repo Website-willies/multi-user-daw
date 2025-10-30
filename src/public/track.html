@@ -32,9 +32,38 @@
             </div>
         </div>
     </body>
+    <footer>
+        <div id="uuid-display"></div>
+    </footer>
     <script src="track.js"></script>
-    <script>
-        // Inline for fetch code
+
+    <script type="module">
+        let uuidDiv = document.getElementById("uuid-display");
+        let button = document.getElementById("back");
+
+        if (document.cookie === ""){
+        fetch('/assign').then((response) => {
+
+                response.json().then((body) => {
+
+                    console.log(body);
+                    document.cookie = body.uuid;
+                    uuidDiv.textContent = `Session ID: ${body.uuid}`;
+                        
+                }).catch(error => {
+                    // will be executed if attempt
+                    // to parse body as JSON crashes
+                    console.log(error)
+                });
+
+        }).catch(error => {
+            // will be executed if first promise crashes
+            console.log(error)
+        });
+        } else {
+        let uuid = document.cookie;
+        uuidDiv.textContent = `Session ID: ${uuid}`;
+        }
 
     </script>
 </html>
