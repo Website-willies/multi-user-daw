@@ -1,8 +1,8 @@
 import express from "express";
-import pool from "./db/pool.js";
 import path from "path";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import soundRoutes from "./routes/sounds.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,6 +14,8 @@ let port = 3000;
 
 app.use(express.json());
 app.use(express.static("src/public"));
+
+app.use("/sounds", soundRoutes);
 app.use("/oneshots", express.static(oneshotsPath));
 
 app.get("/assign", (req, res) => {
