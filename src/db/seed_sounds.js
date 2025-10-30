@@ -16,7 +16,7 @@ async function seedSounds() {
 
     await pool.query(
       `
-      INSERT INTO sounds (name, file_path)
+      INSERT INTO oneshots (name, filepath)
       VALUES ($1, $2)
       ON CONFLICT (name) DO NOTHING;
       `,
