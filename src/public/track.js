@@ -3,6 +3,7 @@ let activeSources = [];
 let addInstrumentBtn = document.getElementById("addInstrument");
 let clearAllBtn = document.getElementById("clearAll");
 let playAllBtn = document.getElementById("playAll");
+let pauseAllBtn = document.getElementById("pauseAll");
 let modal = document.getElementById("instrument-modal");
 let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
@@ -280,7 +281,9 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
-playAllBtn.addEventListener('click', () => {
+let intervalId;
+
+playAllBtn.addEventListener('click', () => {    
     let sequence = [];
     for (let track of tracks){
         for (let oneshot of track.notes){
@@ -292,5 +295,26 @@ playAllBtn.addEventListener('click', () => {
             });
         }                                                                                                                      
     }
+    if (intervalId) {
+        clearInterval(intervalId);
+    }
+    sequence.sort(compareByTime);
     playSequence(sequence);
+    intervalId = setInterval(() => {
+        playSequence(sequence);
+    }, 1000 * secondsPerBeat * 60);
+});
+
+pauseAllBtn.addEventListener('click', () => {
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+    for (const src of activeSources) {
+        try {
+            src.stop();
+        } catch (e) {
+            console.log(e);
+        }
+    }
 });
