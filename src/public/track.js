@@ -10,11 +10,31 @@ let tracksContainer = document.getElementById("tracks");
 let bpm = 120;
 let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
+let oneshotsPath = "/oneshots/";
 
+function noteToFrequency(semitoneOffsetFromA4) {
+  return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
+}
+
+const scalePitch = (pitchPx, canvas) => {
+    const totalRows = canvas.height / gridSize;
+    const rowIndexFromTop = pitchPx / gridSize;       
+    const invertedIndex = totalRows - 1 - rowIndexFromTop; 
+    const semitoneOffset = invertedIndex;               
+
+    const baseOffset = semitoneOffset - (totalRows / 2);
+    const freq = 440 * Math.pow(2, baseOffset / 12);
+    console.log(freq);
+    return freq / 440; 
+};
+
+const scaleTime = (time) => {
+    return time / 20;
+};
 
 let gridSize = 20;
 let canvasWidth = 1200;
-let canvasHeight = 80;
+let canvasHeight = 20;
 let tracks = []
 
 addInstrumentBtn.addEventListener('click', () => {
@@ -38,22 +58,45 @@ function buildTrack(btn, name, color){
     removeBtn.textContent = 'Remove track';
     let clearBtn = document.createElement('button');
     clearBtn.textContent = 'Clear track';
+    let playTrackBtn = document.createElement('button');
+    playTrackBtn.textContent = 'Play track';
+    let sliderContainer = document.createElement('div');
+    sliderContainer.className = 'volume-slider';
+    let slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '1';
+    slider.step = '0.01';
+    slider.value = '1';
+    slider.className = name + '-volume';
+    let sliderLabel = document.createElement('span');
+    sliderLabel.className = 'volume-slider-value';
+    sliderLabel.textContent = slider.value;
+    sliderContainer.appendChild(slider);
+    sliderContainer.appendChild(sliderLabel);
+
+    let colCount = Number(document.getElementById("row-count-input").value);
 
     let canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.height = canvasHeight * colCount;
 
     let ctx = canvas.getContext('2d');
+    let path = oneshotsPath + name + ".wav";
 
     trackHeader.appendChild(trackName);
     trackHeader.appendChild(clearBtn);
     trackHeader.appendChild(removeBtn);
+    trackHeader.appendChild(playTrackBtn);
+    trackHeader.appendChild(sliderContainer);
     trackDiv.appendChild(trackHeader);
     trackDiv.appendChild(canvas);
     tracksContainer.appendChild(trackDiv);
 
     let track = {
-        name, 
+        name,
+        path,
+        colCount,
         color,
         canvas,
         ctx,
@@ -61,7 +104,8 @@ function buildTrack(btn, name, color){
         clearBtn,
         notes: [],
         isDrawing: false,
-        element: trackDiv
+        element: trackDiv,
+        slider
     }
 
     clearBtn.addEventListener('click', () => {
@@ -75,29 +119,48 @@ function buildTrack(btn, name, color){
         tracks.splice(trackIdx, 1);
     });
     
+    playTrackBtn.addEventListener('click', () => {
+        let sequence = [];
+        for (let oneshot of track.notes){
+            sequence.push({
+                "url": track.path,
+                "time": scaleTime(oneshot.time),
+                "pitch":  scalePitch(oneshot.pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
+            });
+        }                                                                                                                      
+        playSequence(sequence);
+    });
+    
+    slider.addEventListener('input', () => {
+        sliderLabel.textContent = parseFloat(slider.value).toFixed(2);
+    });
+    
     return track;
 }
 
 function initCanvas(track){
     let ctx = track.ctx;
+    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillRect(0, 0, canvasWidth, maxCanvasHeight);
     ctx.strokeStyle = '#ddd';
     ctx.lineWidth = 1;
     
     for (let x = 0; x <= canvasWidth; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvasHeight);
+        ctx.lineTo(x, maxCanvasHeight);
         ctx.stroke();
     }
     
-    for (let y = 0; y <= canvasHeight; y += gridSize) {
+    for (let y = 0; y <= maxCanvasHeight; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvasWidth, y);
         ctx.stroke();
     }
+
     track.notes = [];
 }
 
@@ -120,11 +183,33 @@ function canvasEvents(track){
         track.ctx.fillStyle = track.color;
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
         playSequence([{
-            "url": "/oneshots/"+track.name+"_1.wav",
+            "url": track.path,
             "time": 0,
-            "pitch": ((60 - pitch)/80) + 1
+            "pitch": scalePitch(pitch, track.canvas),
+            "volume": parseFloat(track.slider.value)
         }]);      
     });
+}
+
+const listDiv = document.querySelector('.instrument-list');
+try {
+    const res = await fetch('/list-oneshots');
+    const names = await res.json();
+
+    for (const name of names) {
+        const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+
+        const btn = document.createElement('button');
+        btn.classList.add('instrument-btn');
+        btn.dataset.instrument = name;
+        btn.dataset.color = color;
+        btn.textContent = name;
+
+        listDiv.insertBefore(btn, cancelBtn);
+    }
+
+} catch (err) {
+    console.error('Error loading oneshots:', err);
 }
 
 for(let instrumentBtn of instrumentBtns){
@@ -181,7 +266,10 @@ async function playSequence(events) {
         const src = audioCtx.createBufferSource();
         src.buffer = buffers[e.url];
         src.playbackRate.value = e.pitch;
-        src.connect(audioCtx.destination);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = e.volume ?? 1.0;
+        src.connect(gainNode).connect(audioCtx.destination);
+        // src.connect(audioCtx.destination);
         src.start(startTime + e.time * secondsPerBeat);
         activeSources.push(src);
     }
@@ -197,12 +285,12 @@ playAllBtn.addEventListener('click', () => {
     for (let track of tracks){
         for (let oneshot of track.notes){
             sequence.push({
-                "url": "/oneshots/"+track.name+"_1.wav",
-                "time": oneshot.time / 20,
-                "pitch": ((60 - oneshot.pitch)/80) + 1
+                "url": track.path,
+                "time": scaleTime(oneshot.time),
+                "pitch":  scalePitch(oneshot.pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
             });
-        }
+        }                                                                                                                      
     }
-    sequence.sort(compareByTime);
     playSequence(sequence);
 });
