@@ -3,6 +3,7 @@ let activeSources = [];
 let addInstrumentBtn = document.getElementById("addInstrument");
 let clearAllBtn = document.getElementById("clearAll");
 let playAllBtn = document.getElementById("playAll");
+let pauseAllBtn = document.getElementById("pauseAll");
 let modal = document.getElementById("instrument-modal");
 let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
@@ -139,14 +140,12 @@ function buildTrack(btn, name, color){
     return track;
 }
 
-function initCanvas(track){
-    let ctx = track.ctx;
+function drawGrid(ctx){
     let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvasWidth, maxCanvasHeight);
+
     ctx.strokeStyle = '#ddd';
     ctx.lineWidth = 1;
-    
+
     for (let x = 0; x <= canvasWidth; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -160,7 +159,15 @@ function initCanvas(track){
         ctx.lineTo(canvasWidth, y);
         ctx.stroke();
     }
+}
 
+
+function initCanvas(track){
+    let ctx = track.ctx;
+    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvasWidth, maxCanvasHeight);
+    drawGrid(ctx)
     track.notes = [];
 }
 
@@ -179,15 +186,27 @@ function canvasEvents(track){
         let time = Math.floor((e.clientX - boundingRect.left)/gridSize) * gridSize;
         let pitch = Math.floor((e.clientY - boundingRect.top)/gridSize) * gridSize;
 
-        track.notes.push({time, pitch});
-        track.ctx.fillStyle = track.color;
+        let delete_note = false
+        track.notes = track.notes.filter(note => {
+            if (time == note.time && pitch == note.pitch){
+                delete_note = true
+            }
+            return time !== note.time || pitch !== note.pitch;
+        });
+        if (delete_note){
+            track.ctx.fillStyle = "white";
+        } else{
+            track.notes.push({time, pitch});
+            track.ctx.fillStyle = track.color;
+            playSequence([{
+                "url": track.path,
+                "time": 0,
+                "pitch": scalePitch(pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
+            }]);      
+        }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
-        playSequence([{
-            "url": track.path,
-            "time": 0,
-            "pitch": scalePitch(pitch, track.canvas),
-            "volume": parseFloat(track.slider.value)
-        }]);      
+        drawGrid(track.ctx);
     });
 }
 
@@ -280,7 +299,9 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
-playAllBtn.addEventListener('click', () => {
+let intervalId;
+
+playAllBtn.addEventListener('click', () => {    
     let sequence = [];
     for (let track of tracks){
         for (let oneshot of track.notes){
@@ -292,5 +313,26 @@ playAllBtn.addEventListener('click', () => {
             });
         }                                                                                                                      
     }
+    if (intervalId) {
+        clearInterval(intervalId);
+    }
+    sequence.sort(compareByTime);
     playSequence(sequence);
+    intervalId = setInterval(() => {
+        playSequence(sequence);
+    }, 1000 * secondsPerBeat * 60);
+});
+
+pauseAllBtn.addEventListener('click', () => {
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+    for (const src of activeSources) {
+        try {
+            src.stop();
+        } catch (e) {
+            console.log(e);
+        }
+    }
 });
