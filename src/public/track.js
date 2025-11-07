@@ -39,6 +39,7 @@ let canvasHeight = 20;
 let tracks = []
 
 addInstrumentBtn.addEventListener('click', () => {
+    pauseAllTracks()
     modal.classList.add('active');
 });
 
@@ -110,10 +111,12 @@ function buildTrack(btn, name, color){
     }
 
     clearBtn.addEventListener('click', () => {
+        pauseAllTracks();
         initCanvas(track);
     });
 
     removeBtn.addEventListener('click', () => {
+        pauseAllTracks();
         btn.disabled = false;
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
@@ -245,6 +248,7 @@ clearAllBtn.addEventListener('click', () => {
     for(let track of tracks){
         initCanvas(track);
     }
+    pauseAllTracks();
 });
 
 async function loadSound(url) {
@@ -323,7 +327,7 @@ playAllBtn.addEventListener('click', () => {
     }, 1000 * secondsPerBeat * 60);
 });
 
-pauseAllBtn.addEventListener('click', () => {
+function pauseAllTracks(){
     if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
@@ -335,4 +339,6 @@ pauseAllBtn.addEventListener('click', () => {
             console.log(e);
         }
     }
-});
+}
+
+pauseAllBtn.addEventListener('click', pauseAllTracks);
