@@ -39,6 +39,7 @@ let canvasHeight = 20;
 let tracks = []
 
 addInstrumentBtn.addEventListener('click', () => {
+    pauseAllTracks()
     modal.classList.add('active');
 });
 
@@ -58,9 +59,13 @@ function buildTrack(btn, name, color){
     removeBtn.className = 'remove-btn';
     removeBtn.textContent = 'Remove track';
     let clearBtn = document.createElement('button');
+    clearBtn.classList.add('clear-btn');
     clearBtn.textContent = 'Clear track';
     let playTrackBtn = document.createElement('button');
     playTrackBtn.textContent = 'Play track';
+    let muteTrackBtn = document.createElement('button');
+    muteTrackBtn.id = "muteBtnOn";
+    muteTrackBtn.textContent = 'Track: ON';
     let sliderContainer = document.createElement('div');
     sliderContainer.className = 'volume-slider';
     let slider = document.createElement('input');
@@ -72,9 +77,9 @@ function buildTrack(btn, name, color){
     slider.className = name + '-volume';
     let sliderLabel = document.createElement('span');
     sliderLabel.className = 'volume-slider-value';
-    sliderLabel.textContent = slider.value;
-    sliderContainer.appendChild(slider);
+    sliderLabel.textContent = `Volume: ${slider.value}`;
     sliderContainer.appendChild(sliderLabel);
+    sliderContainer.appendChild(slider);
 
     let colCount = Number(document.getElementById("row-count-input").value);
 
@@ -86,10 +91,11 @@ function buildTrack(btn, name, color){
     let path = oneshotsPath + name + ".wav";
 
     trackHeader.appendChild(trackName);
+    trackHeader.appendChild(playTrackBtn);
+    trackHeader.appendChild(muteTrackBtn);
+    trackHeader.appendChild(sliderContainer);
     trackHeader.appendChild(clearBtn);
     trackHeader.appendChild(removeBtn);
-    trackHeader.appendChild(playTrackBtn);
-    trackHeader.appendChild(sliderContainer);
     trackDiv.appendChild(trackHeader);
     trackDiv.appendChild(canvas);
     tracksContainer.appendChild(trackDiv);
@@ -106,14 +112,17 @@ function buildTrack(btn, name, color){
         notes: [],
         isDrawing: false,
         element: trackDiv,
+        muted: false,
         slider
     }
 
     clearBtn.addEventListener('click', () => {
+        pauseAllTracks();
         initCanvas(track);
     });
 
     removeBtn.addEventListener('click', () => {
+        pauseAllTracks();
         btn.disabled = false;
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
@@ -132,9 +141,21 @@ function buildTrack(btn, name, color){
         }                                                                                                                      
         playSequence(sequence);
     });
+
+    muteTrackBtn.addEventListener('click', () => {
+        if (!track.muted) {
+            muteTrackBtn.textContent = 'Track: OFF'
+            muteTrackBtn.id = "muteBtnOff";
+            track.muted = true
+        }else{
+            muteTrackBtn.textContent = 'Track: ON'
+            muteTrackBtn.id = "muteBtnOn";
+            track.muted = false
+        }
+    })
     
     slider.addEventListener('input', () => {
-        sliderLabel.textContent = parseFloat(slider.value).toFixed(2);
+        sliderLabel.textContent = `Volume: ${parseFloat(slider.value).toFixed(2)}`;
     });
     
     return track;
@@ -245,6 +266,7 @@ clearAllBtn.addEventListener('click', () => {
     for(let track of tracks){
         initCanvas(track);
     }
+    pauseAllTracks();
 });
 
 async function loadSound(url) {
@@ -304,6 +326,9 @@ let intervalId;
 playAllBtn.addEventListener('click', () => {    
     let sequence = [];
     for (let track of tracks){
+        if (track.muted){
+            continue;
+        }
         for (let oneshot of track.notes){
             sequence.push({
                 "url": track.path,
@@ -323,7 +348,7 @@ playAllBtn.addEventListener('click', () => {
     }, 1000 * secondsPerBeat * 60);
 });
 
-pauseAllBtn.addEventListener('click', () => {
+function pauseAllTracks(){
     if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
@@ -335,4 +360,6 @@ pauseAllBtn.addEventListener('click', () => {
             console.log(e);
         }
     }
-});
+}
+
+pauseAllBtn.addEventListener('click', pauseAllTracks);
