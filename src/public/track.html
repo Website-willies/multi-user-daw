@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
 <html>
     <head>
         <meta charset="utf-8">
@@ -8,62 +9,105 @@
     </head>
     <body>
         <div class="controls">
-            <button id="addInstrument">Add Instrument</button>
-            <button id="clearAll">Clear All</button>
-            <button id="playAll">Play All</button>
-            <label for="bpm-input">BPM:</label>
-            <input type="number" id="bpm-input" value="120" min="30" max="300" step="1">
-            <label for="divisions-input">Beat Divisions:</label>
-            <input type="number" id="divisions-input" value="2" min="1" max="32" step="1">
+                <button id="addInstrument">Add Instrument</button>
+                <button id="clearAll">Clear All</button>
+                <button id="playAll">Play All</button>
+                <button id="pauseAll">Pause All</button>
+                <label for="bpm-input">BPM:</label>
+                <input type="number" id="bpm-input" value="120" min="30" max="300" step="1">
+                <label for="divisions-input">Beat Divisions:</label>
+                <input type="number" id="divisions-input" value="2" min="1" max="32" step="1">
+                <div style="flex:1;"></div>
+                <button id="back">Back</button>
+                <button id="save">Save Track</button>
+                <button id="delete">Delete Track</button>
         </div>
         <div id="tracks"></div>
         <div class="modal" id="instrument-modal">
             <div class="modal-content">
                 <h2>Select Instrument</h2>
                 <div class="instrument-list">
-                    <button class="instrument-btn" data-instrument="Hi-Hat" data-color="#ff6b6b">Hi-Hat</button>
-                    <button class="instrument-btn" data-instrument="Snare" data-color="#4ecdc4">Snare</button>
-                    <button class="instrument-btn" data-instrument="Kick" data-color="#45b7d1">Kick</button>
-                    <button class="instrument-btn" data-instrument="Tom" data-color="#f9ca24">Tom</button>
-                    <button class="instrument-btn" data-instrument="Cymbal" data-color="#6c5ce7">Cymbal</button>
-                    <button class="instrument-btn" data-instrument="Clap" data-color="#a29bfe">Clap</button>
+                    <label for="row-count-input">Pitch Count:</label>
+                    <input type="number" id="row-count-input" value="4" min="1" max="24" step="1">
+                    <!-- <button class="instrument-btn" data-instrument="sample" data-color="#ff6b6b">sample</button> -->
                     <button class="cancel-btn" id="cancelBtn">Cancel</button>
                 </div>
             </div>
         </div>
     </body>
-    <footer>
-        <div id="uuid-display"></div>
-    </footer>
-    <script src="track.js"></script>
+    <script type="module" src="track.js"></script>
 
     <script type="module">
-        let uuidDiv = document.getElementById("uuid-display");
-        let button = document.getElementById("back");
+        import {getTrack, saveTrack, deleteTrack} from "./track.js"
+        let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 
-        if (document.cookie === ""){
-        fetch('/assign').then((response) => {
-
-                response.json().then((body) => {
-
-                    console.log(body);
-                    document.cookie = body.uuid;
-                    uuidDiv.textContent = `Session ID: ${body.uuid}`;
-                        
-                }).catch(error => {
-                    // will be executed if attempt
-                    // to parse body as JSON crashes
-                    console.log(error)
-                });
-
-        }).catch(error => {
-            // will be executed if first promise crashes
-            console.log(error)
-        });
-        } else {
-        let uuid = document.cookie;
-        uuidDiv.textContent = `Session ID: ${uuid}`;
+        if (uuid){
+            let trackDeets = getTrack(uuid)
         }
 
+        document.getElementById("back").addEventListener("click", () => {
+            window.location.replace(`/`);
+        })
+
+        document.getElementById("save").addEventListener("click", () => {
+            let cookies = document.cookie
+                ? Object.fromEntries(document.cookie.split('; ').map(x => x.split('=')))
+                : {};
+
+            if (!uuid){
+                const name = prompt("Enter a name for this track:");
+                if (!name){
+                    alert("Please enter a name.")
+                    return;
+                };
+                if (name.includes("=")){
+                    alert("Equals sign not permitted in track name.")
+                    return;
+                }; 
+                if (name in cookies){
+                    if(confirm('A track already exists by that name. Overwrite?')){} else { return; }
+                }
+
+                fetch('/assign').then((response) => {
+                    response.json().then((body) => {
+                        uuid = body.uuid
+                        cookies[name] = uuid
+                        for (const [k, v] of Object.entries(cookies)) { document.cookie = `${k}=${v};`; }
+                        saveTrack(uuid)
+                    }).catch(error => {
+                        console.log(error) // parse error
+                    });
+                }).catch(error => {
+                    console.log(error) // fetch error
+                });
+            } else {
+                saveTrack(uuid)
+            }
+
+        });
+
+        document.getElementById("delete").addEventListener("click", () => {
+            if(confirm('Delete the current track?')){
+                if (uuid){
+                    let cookies = document.cookie
+                        ? Object.fromEntries(document.cookie.split('; ').map(x => x.split('=')))
+                        : {};
+
+                    for (const [k, v] of Object.entries(cookies)) {
+                        if (v === uuid) {
+                            document.cookie = `${k}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+                        }
+                    }
+
+                    deleteTrack(uuid)
+                }
+
+                window.location.replace(`/track.html`);
+
+            } else { 
+                return; 
+            }
+
+        })
     </script>
 </html>

@@ -2,7 +2,6 @@ html {
     position: relative;
     min-height: 100%;
 }
-
 button {
     padding: 8px 15px;
     cursor: pointer;
@@ -62,6 +61,16 @@ canvas {
     margin-top: 0;
     margin-bottom: 20px;
 }
+#muteBtnOff {
+    background: rgba(255, 0, 0, 0.5);
+    color: white;
+    border: 2px solid rgba(255, 0, 0, 0.2);
+}
+#muteBtnOn {
+    background: rgba(0, 255, 0, 0.5);
+    color: black;
+    border: 2px solid rgba(0, 255, 0, 0.2);
+}
 .remove-btn { 
     background: rgba(255, 0, 0, 0.5);
     color: white;
@@ -69,6 +78,7 @@ canvas {
 }
 .track {
     margin-bottom: 20px;
+    display: inline-block;
 }
 .track-header {
     display: flex;
@@ -76,9 +86,15 @@ canvas {
     gap: 10px;
     margin-bottom: 5px;
 }
+.track-header .clear-btn {
+    margin-left: auto;
+}
 .track-name {
     font-weight: bold;
     font-size: 16px;
 }
-
-
+.volume-slider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

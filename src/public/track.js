@@ -3,6 +3,7 @@ let activeSources = [];
 let addInstrumentBtn = document.getElementById("addInstrument");
 let clearAllBtn = document.getElementById("clearAll");
 let playAllBtn = document.getElementById("playAll");
+let pauseAllBtn = document.getElementById("pauseAll");
 let modal = document.getElementById("instrument-modal");
 let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
@@ -10,14 +11,35 @@ let tracksContainer = document.getElementById("tracks");
 let bpm = 120;
 let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
+let oneshotsPath = "/oneshots/";
 
+function noteToFrequency(semitoneOffsetFromA4) {
+  return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
+}
+
+const scalePitch = (pitchPx, canvas) => {
+    const totalRows = canvas.height / gridSize;
+    const rowIndexFromTop = pitchPx / gridSize;       
+    const invertedIndex = totalRows - 1 - rowIndexFromTop; 
+    const semitoneOffset = invertedIndex;               
+
+    const baseOffset = semitoneOffset - (totalRows / 2);
+    const freq = 440 * Math.pow(2, baseOffset / 12);
+    console.log(freq);
+    return freq / 440; 
+};
+
+const scaleTime = (time) => {
+    return time / 20;
+};
 
 let gridSize = 20;
 let canvasWidth = 1200;
-let canvasHeight = 80;
+let canvasHeight = 20;
 let tracks = []
 
 addInstrumentBtn.addEventListener('click', () => {
+    pauseAllTracks()
     modal.classList.add('active');
 });
 
@@ -37,15 +59,41 @@ function buildTrack(btn, name, color){
     removeBtn.className = 'remove-btn';
     removeBtn.textContent = 'Remove track';
     let clearBtn = document.createElement('button');
+    clearBtn.classList.add('clear-btn');
     clearBtn.textContent = 'Clear track';
+    let playTrackBtn = document.createElement('button');
+    playTrackBtn.textContent = 'Play track';
+    let muteTrackBtn = document.createElement('button');
+    muteTrackBtn.id = "muteBtnOn";
+    muteTrackBtn.textContent = 'Track: ON';
+    let sliderContainer = document.createElement('div');
+    sliderContainer.className = 'volume-slider';
+    let slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0';
+    slider.max = '1';
+    slider.step = '0.01';
+    slider.value = '1';
+    slider.className = name + '-volume';
+    let sliderLabel = document.createElement('span');
+    sliderLabel.className = 'volume-slider-value';
+    sliderLabel.textContent = `Volume: ${slider.value}`;
+    sliderContainer.appendChild(sliderLabel);
+    sliderContainer.appendChild(slider);
+
+    let colCount = Number(document.getElementById("row-count-input").value);
 
     let canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.height = canvasHeight * colCount;
 
     let ctx = canvas.getContext('2d');
+    let path = oneshotsPath + name + ".wav";
 
     trackHeader.appendChild(trackName);
+    trackHeader.appendChild(playTrackBtn);
+    trackHeader.appendChild(muteTrackBtn);
+    trackHeader.appendChild(sliderContainer);
     trackHeader.appendChild(clearBtn);
     trackHeader.appendChild(removeBtn);
     trackDiv.appendChild(trackHeader);
@@ -53,7 +101,9 @@ function buildTrack(btn, name, color){
     tracksContainer.appendChild(trackDiv);
 
     let track = {
-        name, 
+        name,
+        path,
+        colCount,
         color,
         canvas,
         ctx,
@@ -61,43 +111,84 @@ function buildTrack(btn, name, color){
         clearBtn,
         notes: [],
         isDrawing: false,
-        element: trackDiv
+        element: trackDiv,
+        muted: false,
+        slider
     }
 
     clearBtn.addEventListener('click', () => {
+        pauseAllTracks();
         initCanvas(track);
     });
 
     removeBtn.addEventListener('click', () => {
+        pauseAllTracks();
         btn.disabled = false;
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
         tracks.splice(trackIdx, 1);
     });
     
+    playTrackBtn.addEventListener('click', () => {
+        let sequence = [];
+        for (let oneshot of track.notes){
+            sequence.push({
+                "url": track.path,
+                "time": scaleTime(oneshot.time),
+                "pitch":  scalePitch(oneshot.pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
+            });
+        }                                                                                                                      
+        playSequence(sequence);
+    });
+
+    muteTrackBtn.addEventListener('click', () => {
+        if (!track.muted) {
+            muteTrackBtn.textContent = 'Track: OFF'
+            muteTrackBtn.id = "muteBtnOff";
+            track.muted = true
+        }else{
+            muteTrackBtn.textContent = 'Track: ON'
+            muteTrackBtn.id = "muteBtnOn";
+            track.muted = false
+        }
+    })
+    
+    slider.addEventListener('input', () => {
+        sliderLabel.textContent = `Volume: ${parseFloat(slider.value).toFixed(2)}`;
+    });
+    
     return track;
 }
 
-function initCanvas(track){
-    let ctx = track.ctx;
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+function drawGrid(ctx){
+    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
+
     ctx.strokeStyle = '#ddd';
     ctx.lineWidth = 1;
-    
+
     for (let x = 0; x <= canvasWidth; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvasHeight);
+        ctx.lineTo(x, maxCanvasHeight);
         ctx.stroke();
     }
     
-    for (let y = 0; y <= canvasHeight; y += gridSize) {
+    for (let y = 0; y <= maxCanvasHeight; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvasWidth, y);
         ctx.stroke();
     }
+}
+
+
+function initCanvas(track){
+    let ctx = track.ctx;
+    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvasWidth, maxCanvasHeight);
+    drawGrid(ctx)
     track.notes = [];
 }
 
@@ -116,15 +207,49 @@ function canvasEvents(track){
         let time = Math.floor((e.clientX - boundingRect.left)/gridSize) * gridSize;
         let pitch = Math.floor((e.clientY - boundingRect.top)/gridSize) * gridSize;
 
-        track.notes.push({time, pitch});
-        track.ctx.fillStyle = track.color;
+        let delete_note = false
+        track.notes = track.notes.filter(note => {
+            if (time == note.time && pitch == note.pitch){
+                delete_note = true
+            }
+            return time !== note.time || pitch !== note.pitch;
+        });
+        if (delete_note){
+            track.ctx.fillStyle = "white";
+        } else{
+            track.notes.push({time, pitch});
+            track.ctx.fillStyle = track.color;
+            playSequence([{
+                "url": track.path,
+                "time": 0,
+                "pitch": scalePitch(pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
+            }]);      
+        }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
-        playSequence([{
-            "url": "/oneshots/"+track.name+"_1.wav",
-            "time": 0,
-            "pitch": ((60 - pitch)/80) + 1
-        }]);      
+        drawGrid(track.ctx);
     });
+}
+
+const listDiv = document.querySelector('.instrument-list');
+try {
+    const res = await fetch('/list-oneshots');
+    const names = await res.json();
+
+    for (const name of names) {
+        const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+
+        const btn = document.createElement('button');
+        btn.classList.add('instrument-btn');
+        btn.dataset.instrument = name;
+        btn.dataset.color = color;
+        btn.textContent = name;
+
+        listDiv.insertBefore(btn, cancelBtn);
+    }
+
+} catch (err) {
+    console.error('Error loading oneshots:', err);
 }
 
 for(let instrumentBtn of instrumentBtns){
@@ -141,6 +266,7 @@ clearAllBtn.addEventListener('click', () => {
     for(let track of tracks){
         initCanvas(track);
     }
+    pauseAllTracks();
 });
 
 async function loadSound(url) {
@@ -181,7 +307,10 @@ async function playSequence(events) {
         const src = audioCtx.createBufferSource();
         src.buffer = buffers[e.url];
         src.playbackRate.value = e.pitch;
-        src.connect(audioCtx.destination);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = e.volume ?? 1.0;
+        src.connect(gainNode).connect(audioCtx.destination);
+        // src.connect(audioCtx.destination);
         src.start(startTime + e.time * secondsPerBeat);
         activeSources.push(src);
     }
@@ -192,17 +321,100 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
-playAllBtn.addEventListener('click', () => {
-    let sequence = [];
+export async function getTrack(uuid){
+    fetch(`sounds/track/${uuid}`).then((response) => {
+        response.json().then((body) => {
+            console.log("Retrieved: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+export async function saveTrack(uuid){
+    // this is lazy but yeah let's wipe and rewrite the track from scratch EVERY SINGLE TIME WE SAVE IT
+    await deleteTrack(uuid);
+
+    let body = []
     for (let track of tracks){
         for (let oneshot of track.notes){
-            sequence.push({
-                "url": "/oneshots/"+track.name+"_1.wav",
-                "time": oneshot.time / 20,
-                "pitch": ((60 - oneshot.pitch)/80) + 1
-            });
+            body.push({
+                "sound": track.name,
+                "pitch": oneshot.pitch,
+                "time": oneshot.time
+            })
         }
+    }
+
+    fetch(`sounds/track/${uuid}`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+
+}
+
+export async function deleteTrack(uuid){
+    fetch(`sounds/track/${uuid}`, { method: "DELETE" }).then((response) => {
+        response.json().then((body) => {
+            console.log("Deleted: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+let intervalId;
+
+playAllBtn.addEventListener('click', () => {    
+    let sequence = [];
+    for (let track of tracks){
+        if (track.muted){
+            continue;
+        }
+        for (let oneshot of track.notes){
+            sequence.push({
+                "url": track.path,
+                "time": scaleTime(oneshot.time),
+                "pitch":  scalePitch(oneshot.pitch, track.canvas),
+                "volume": parseFloat(track.slider.value)
+            });
+        }                                                                                                                      
+    }
+    if (intervalId) {
+        clearInterval(intervalId);
     }
     sequence.sort(compareByTime);
     playSequence(sequence);
+    intervalId = setInterval(() => {
+        playSequence(sequence);
+    }, 1000 * secondsPerBeat * 60);
 });
+
+function pauseAllTracks(){
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+    for (const src of activeSources) {
+        try {
+            src.stop();
+        } catch (e) {
+            console.log(e);
+        }
+    }
+}
+
+pauseAllBtn.addEventListener('click', pauseAllTracks);
