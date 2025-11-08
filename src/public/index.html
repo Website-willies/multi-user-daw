@@ -27,18 +27,40 @@
 </head>
 <body>
 
-  <p1>Welcome from the Website Willies!</p1>
+  <p1>MultiUserDaw</p1>
+  <div id="session-list"></div>
   <button id="daw" type="button">Start a session!</button> 
 
 </body>
 
 <script>
+  const sessionsList = document.getElementById("session-list");
+  const cookies = document.cookie 
+    ? Object.fromEntries(document.cookie.split('; ').map(x => x.split('=')))
+    : {};
 
-  let button = document.getElementById("daw")
+  console.log(cookies)
+  if (cookies) {
+    try {
 
-  button.addEventListener("click", () => {
-      window.location.replace(`/track.html`);
+      for (const [key, val] of Object.entries(cookies)) {
+        const temp = document.createElement("button");
+        temp.textContent = key;
+        temp.addEventListener("click", () => {
+          window.location.replace(`/track.html?uuid=${val}`);
+        })
+        sessionsList.appendChild(temp);
+      }
+
+    } catch {
+      sessionsList.textContent = "Error reading session data.";
+    }
+  } else {
+    sessionsList.textContent = "No previous sessions.";
+  }
+
+  document.getElementById("daw").addEventListener("click", () => {
+    window.location.replace(`/track.html`);
   });
-  
 </script>
 </html>

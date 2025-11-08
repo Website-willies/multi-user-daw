@@ -321,6 +321,61 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
+export async function getTrack(uuid){
+    fetch(`sounds/track/${uuid}`).then((response) => {
+        response.json().then((body) => {
+            console.log("Retrieved: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+export async function saveTrack(uuid){
+    // this is lazy but yeah let's wipe and rewrite the track from scratch EVERY SINGLE TIME WE SAVE IT
+    await deleteTrack(uuid);
+
+    let body = []
+    for (let track of tracks){
+        for (let oneshot of track.notes){
+            body.push({
+                "sound": track.name,
+                "pitch": oneshot.pitch,
+                "time": oneshot.time
+            })
+        }
+    }
+
+    fetch(`sounds/track/${uuid}`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+
+}
+
+export async function deleteTrack(uuid){
+    fetch(`sounds/track/${uuid}`, { method: "DELETE" }).then((response) => {
+        response.json().then((body) => {
+            console.log("Deleted: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
 let intervalId;
 
 playAllBtn.addEventListener('click', () => {    
