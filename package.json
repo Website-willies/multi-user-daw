@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "setup-db": "bash scripts/setup_db.sh",
     "migrate-up": "node-pg-migrate up",
-    "seed": "node src/db/seed_sounds.js",
+    "seed": "node src/db/seed_oneshots.js",
     "migrate-down": "node-pg-migrate down"
   },
   "repository": {
