@@ -4,6 +4,7 @@ let addInstrumentBtn = document.getElementById("addInstrument");
 let clearAllBtn = document.getElementById("clearAll");
 let playAllBtn = document.getElementById("playAll");
 let pauseAllBtn = document.getElementById("pauseAll");
+let downloadMixBtn = document.getElementById("downloadMixBtn");
 let modal = document.getElementById("instrument-modal");
 let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
@@ -416,5 +417,114 @@ function pauseAllTracks(){
         }
     }
 }
+
+function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels,
+          length = buffer.length * numOfChan * 2 + 44,
+          bufferArray = new ArrayBuffer(length),
+          view = new DataView(bufferArray),
+          channels = [],
+          sampleRate = buffer.sampleRate;
+    
+    let offset = 0;
+
+    function writeString(str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+        offset += str.length;
+    }
+
+    writeString('RIFF');
+    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true);
+    offset += 4;
+    writeString('WAVE');
+    writeString('fmt ');
+    view.setUint32(offset, 16, true);
+    offset += 4;
+    view.setUint16(offset, 1, true);
+    offset += 2;
+    view.setUint16(offset, numOfChan, true);
+    offset += 2;
+    view.setUint32(offset, sampleRate, true);
+    offset += 4;
+    view.setUint32(offset, sampleRate * numOfChan * 2, true);
+    offset += 4;
+    view.setUint16(offset, numOfChan * 2, true);
+    offset += 2;
+    view.setUint16(offset, 16, true);
+    offset += 2;
+    writeString('data');
+    view.setUint32(offset, buffer.length * numOfChan * 2, true);
+    offset += 4;
+
+    for (let i = 0; i < numOfChan; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    let interleaved = new Float32Array(buffer.length * numOfChan);
+    for (let i = 0; i < buffer.length; i++) {
+        for (let c = 0; c < numOfChan; c++) {
+            interleaved[i * numOfChan + c] = channels[c][i];
+        }
+    }
+
+    let index = 0;
+    for (let i = 0; i < interleaved.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, interleaved[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+}
+
+downloadMixBtn.addEventListener('click', async () => {
+    await updateBPMAndDivisions();
+
+    let events = [];
+    for (let track of tracks) {
+        if (track.muted) continue;
+        for (let oneshot of track.notes) {
+            events.push({
+                url: track.path,
+                time: scaleTime(oneshot.time),
+                pitch: scalePitch(oneshot.pitch, track.canvas),
+                volume: parseFloat(track.slider.value)
+            });
+        }
+    }
+
+    events.sort((a, b) => a.time - b.time);
+    const buffers = {};
+    const urls = [...new Set(events.map(e => e.url))];
+    for (const url of urls) {
+        buffers[url] = await loadSound(url);
+    }
+
+    const duration = Math.max(...events.map(e => e.time)) * secondsPerBeat + 2;
+    const sampleRate = audioCtx.sampleRate;
+    const offlineCtx = new OfflineAudioContext(2, duration * sampleRate, sampleRate);
+
+    for (const e of events) {
+        const src = offlineCtx.createBufferSource();
+        src.buffer = buffers[e.url];
+        src.playbackRate.value = e.pitch;
+        const gainNode = offlineCtx.createGain();
+        gainNode.gain.value = e.volume ?? 1.0;
+        src.connect(gainNode).connect(offlineCtx.destination);
+        src.start(e.time * secondsPerBeat);
+    }
+
+    const rendered = await offlineCtx.startRendering();
+    const wavBlob = audioBufferToWav(rendered);
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(wavBlob);
+    a.download = 'mix.wav';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+});
+
 
 pauseAllBtn.addEventListener('click', pauseAllTracks);
