@@ -39,11 +39,16 @@
     <script type="module" src="track.js"></script>
 
     <script type="module">
-        import {getTrack, saveTrack, deleteTrack} from "./track.js"
+        import {getTrack, rebuildTrack, saveTrack, deleteTrack} from "./track.js"
         let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 
         if (uuid){
-            let trackDeets = getTrack(uuid)
+            const tracks = await getTrack(uuid)
+            for (const [instrument, data] of Object.entries(tracks)){
+                let instrumentBtn = document.querySelector(`[data-instrument="${instrument}"]`);
+                let instrumentColor = instrumentBtn.dataset.color;
+                rebuildTrack(instrumentBtn, instrument, instrumentColor, data.pitch_count, data.notes);
+            }
         }
 
         document.getElementById("back").addEventListener("click", () => {

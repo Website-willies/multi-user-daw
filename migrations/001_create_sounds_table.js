@@ -11,10 +11,11 @@ export const shorthands = undefined;
 export const up = (pgm) => {
     pgm.createTable('sounds', {
         id: 'id',
-        uuid: { type: 'uuid', notNull: true },
+        uuid: { type: 'text', notNull: true },
         sound: { type: 'text', notNull: true },
         pitch: { type: 'integer', notNull: true },
         time: { type: 'integer', notNull: true },
+        pitch_count: { type: 'integer', notNull: true},
     });
 };
 

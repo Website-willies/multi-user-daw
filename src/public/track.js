@@ -26,7 +26,6 @@ const scalePitch = (pitchPx, canvas) => {
 
     const baseOffset = semitoneOffset - (totalRows / 2);
     const freq = 440 * Math.pow(2, baseOffset / 12);
-    console.log(freq);
     return freq / 440; 
 };
 
@@ -35,7 +34,7 @@ const scaleTime = (time) => {
 };
 
 let gridSize = 20;
-let canvasWidth = 1200;
+let canvasWidth = 1280;
 let canvasHeight = 20;
 let tracks = []
 
@@ -48,7 +47,7 @@ cancelBtn.addEventListener('click', () => {
     modal.classList.remove('active');
 });
 
-function buildTrack(btn, name, color){
+function buildTrack(btn, name, color, pitchCount){
     let trackDiv = document.createElement('div');
     trackDiv.className = 'track';
     let trackHeader = document.createElement('div');
@@ -82,11 +81,9 @@ function buildTrack(btn, name, color){
     sliderContainer.appendChild(sliderLabel);
     sliderContainer.appendChild(slider);
 
-    let colCount = Number(document.getElementById("row-count-input").value);
-
     let canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
-    canvas.height = canvasHeight * colCount;
+    canvas.height = canvasHeight * pitchCount;
 
     let ctx = canvas.getContext('2d');
     let path = oneshotsPath + name + ".wav";
@@ -104,7 +101,7 @@ function buildTrack(btn, name, color){
     let track = {
         name,
         path,
-        colCount,
+        pitchCount,
         color,
         canvas,
         ctx,
@@ -195,10 +192,24 @@ function initCanvas(track){
 
 function addTrack(instrumentBtn, instrumentName, instrumentColor){
     // Build track HTML
-    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor);
+    let pitchCount = Number(document.getElementById("row-count-input").value);
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
     tracks.push(track);
     initCanvas(track);
     canvasEvents(track);
+}
+
+export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount, notes){
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
+    initCanvas(track);
+    canvasEvents(track);
+    track.notes = notes;
+    tracks.push(track);
+    track.ctx.fillStyle = track.color;
+    for (let note of notes){
+        track.ctx.fillRect(note.time, note.pitch, gridSize, gridSize);
+    }
+    instrumentBtn.disabled = true;
 }
 
 function canvasEvents(track){
@@ -323,14 +334,14 @@ function compareByTime(a, b)
 }
 
 export async function getTrack(uuid){
-    fetch(`sounds/track/${uuid}`).then((response) => {
-        response.json().then((body) => {
-            console.log("Retrieved: ", body)
-        }).catch(error => {
-            console.error(error); // parse error
-        });
-    }).catch(error => {
-        console.log(error) // fetch error
+    return fetch(`sounds/track/${uuid}`)
+    .then((response) => response.json())
+    .then((body) => {
+      return body;
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      throw error;
     });
 }
 
@@ -344,7 +355,8 @@ export async function saveTrack(uuid){
             body.push({
                 "sound": track.name,
                 "pitch": oneshot.pitch,
-                "time": oneshot.time
+                "time": oneshot.time,
+                "pitch_count": track.pitchCount,
             })
         }
     }
