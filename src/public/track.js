@@ -233,35 +233,103 @@ function canvasEvents(track){
 }
 
 const listDiv = document.querySelector('.instrument-list');
-try {
+let instrumentData = [];
+let currentView = "categories";
+async function loadOneshots() {
+  try {
     const res = await fetch('/list-oneshots');
-    const names = await res.json();
-
-    for (const name of names) {
-        const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
-
-        const btn = document.createElement('button');
-        btn.classList.add('instrument-btn');
-        btn.dataset.instrument = name;
-        btn.dataset.color = color;
-        btn.textContent = name;
-
-        listDiv.insertBefore(btn, cancelBtn);
-    }
-
-} catch (err) {
+    instrumentData = await res.json();
+    showInstrumentCategories();
+  } catch (err) {
     console.error('Error loading oneshots:', err);
+  }
+}
+function showInstrumentCategories() {
+  listDiv.innerHTML = `
+    <h3>Select an Instrument Type</h3>
+    <label for="row-count-input">Pitch Count:</label>
+    <input type="number" id="row-count-input" value="4" min="1" max="24" step="1">
+  `;
+  instrumentData.forEach(({ instrument }) => {
+    const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+    const btn = document.createElement('button');
+    btn.classList.add('instrument-btn', 'instrument-category-btn');
+    btn.dataset.kind = 'category';
+    btn.dataset.instrument = instrument;
+    btn.dataset.color = color;
+    btn.textContent = instrument;
+    btn.addEventListener('click', () => showInstrumentFiles(instrument));
+    listDiv.appendChild(btn);
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.classList.add('cancel-btn');
+  cancelBtn.id = 'cancelBtn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+  listDiv.appendChild(cancelBtn);
 }
 
-for(let instrumentBtn of instrumentBtns){
-    instrumentBtn.addEventListener('click', () => {
-        let instrumentName = instrumentBtn.dataset.instrument;
-        let instrumentColor = instrumentBtn.dataset.color;
-        instrumentBtn.disabled = true;
-        addTrack(instrumentBtn, instrumentName, instrumentColor);
-        modal.classList.remove('active');
+function showInstrumentFiles(instrumentName) {
+  const instrument = instrumentData.find(i => i.instrument === instrumentName);
+  if (!instrument) return;
+
+  listDiv.innerHTML = `
+    <h3>${instrumentName}</h3>
+    <button id="backToCategories">← Back</button>
+  `;
+
+  document.getElementById('backToCategories').addEventListener('click', showInstrumentCategories);
+
+  instrument.files.forEach(file => {
+    const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+    const btn = document.createElement('button');
+    btn.classList.add('instrument-btn');
+    btn.dataset.kind = 'file';
+    btn.dataset.instrument = `${instrumentName}/${file}`;
+    btn.dataset.color = color;
+    btn.textContent = file;
+
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      addTrack(btn, `${instrumentName}/${file}`, color);
+      modal.classList.remove('active');
     });
+
+    listDiv.appendChild(btn);
+  });
 }
+
+await loadOneshots();
+// try {
+//     const res = await fetch('/list-oneshots');
+//     const names = await res.json();
+
+//     for (const name of names) {
+//         const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+
+//         const btn = document.createElement('button');
+//         btn.classList.add('instrument-btn');
+//         btn.dataset.instrument = name;
+//         btn.dataset.color = color;
+//         btn.textContent = name;
+
+//         listDiv.insertBefore(btn, cancelBtn);
+//     }
+
+// } catch (err) {
+//     console.error('Error loading oneshots:', err);
+// }
+
+// for(let instrumentBtn of instrumentBtns){
+//     instrumentBtn.addEventListener('click', () => {
+//         let instrumentName = instrumentBtn.dataset.instrument;
+//         let instrumentColor = instrumentBtn.dataset.color;
+//         instrumentBtn.disabled = true;
+//         addTrack(instrumentBtn, instrumentName, instrumentColor);
+//         modal.classList.remove('active');
+//     });
+// }
 
 clearAllBtn.addEventListener('click', () => {
     for(let track of tracks){
@@ -322,17 +390,45 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
-export async function getTrack(uuid){
-    fetch(`sounds/track/${uuid}`).then((response) => {
-        response.json().then((body) => {
-            console.log("Retrieved: ", body)
-        }).catch(error => {
-            console.error(error); // parse error
-        });
-    }).catch(error => {
-        console.log(error) // fetch error
-    });
+export async function getTrack(uuid) {
+  try {
+    const res = await fetch(`/sounds/track/${uuid}`);
+    const body = await res.json();
+    console.log("Retrieved:", body);
+
+    if (!Array.isArray(body) || body.length === 0) {
+      console.log("No notes found for this track.");
+      return;
+    }
+
+    // group by instrument name (sound field)
+    const groups = {};
+    for (const note of body) {
+      if (!groups[note.sound]) groups[note.sound] = [];
+      groups[note.sound].push(note);
+    }
+
+    for (const [soundName, notes] of Object.entries(groups)) {
+      const color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`;
+      const fakeBtn = { disabled: true };
+      const track = buildTrack(fakeBtn, soundName, color);
+      tracks.push(track);
+      initCanvas(track);
+
+      // repaint notes
+      for (const note of notes) {
+        track.notes.push({ time: note.time, pitch: note.pitch });
+        track.ctx.fillStyle = track.color;
+        track.ctx.fillRect(note.time, note.pitch, gridSize, gridSize);
+      }
+      drawGrid(track.ctx);
+      canvasEvents(track);
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
+
 
 export async function saveTrack(uuid){
     // this is lazy but yeah let's wipe and rewrite the track from scratch EVERY SINGLE TIME WE SAVE IT
