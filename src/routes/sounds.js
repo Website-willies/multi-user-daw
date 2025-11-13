@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
 // PUT one
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { uuid, sound, pitch, time } = req.body;
+  const { uuid, sound, pitch, time, pitch_count } = req.body;
   try {
     const result = await pool.query(
       'UPDATE sounds SET uuid = $1, sound = $2, pitch = $3, time = $4, pitch_count = $5, WHERE id = $6 RETURNING *;',
@@ -48,7 +48,7 @@ router.put('/:id', async (req, res) => {
 
 // POST one
 router.post('/', async (req, res) => {
-  const { uuid, sound, pitch, time } = req.body;
+  const { uuid, sound, pitch, time, pitch_count} = req.body;
   try {
     const result = await pool.query(
       'INSERT INTO sounds (uuid, sound, pitch, time, pitch_count) VALUES ($1, $2, $3, $4, $5) RETURNING *;',
@@ -128,8 +128,15 @@ router.post('/track/:uuid', async (req, res) => {
 // DELETE many by UUID
 router.delete('/track/:uuid', async (req, res) => {
   const { uuid } = req.params;
+  const { sound, pitch, time } = req.body || {};
+  let result;
   try {
-    const result = await pool.query('DELETE FROM sounds WHERE uuid = $1 RETURNING *;', [uuid]);
+    if (!sound && !pitch && !time){
+      result = await pool.query('DELETE FROM sounds WHERE uuid = $1 RETURNING *;', [uuid]);
+    }else {
+      const {sound, pitch, time, pitch_count} = req.body;
+      result = await pool.query('DELETE FROM sounds WHERE uuid = $1 AND sound = $2 AND pitch = $3 AND time = $4 RETURNING *;', [uuid, sound, pitch, time]);
+    }
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
     res.status(200).json({ message: 'Deleted', deleted: result.rows });
   } catch (err) {
@@ -137,5 +144,17 @@ router.delete('/track/:uuid', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.delete('/track/:uuid/:sound', async (req, res) => {
+  const { uuid, sound } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM sounds WHERE uuid = $1 AND sound = $2 RETURNING *;', [uuid, sound]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+    res.status(200).json({ message: 'Deleted', deleted: result.rows });
+  } catch (err) {
+    console.error('Error deleting sounds:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
 
 export default router;

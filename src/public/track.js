@@ -13,6 +13,7 @@ let bpm = 120;
 let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
+let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 
 function noteToFrequency(semitoneOffsetFromA4) {
   return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
@@ -117,6 +118,7 @@ function buildTrack(btn, name, color, pitchCount){
     clearBtn.addEventListener('click', () => {
         pauseAllTracks();
         initCanvas(track);
+        deleteSound(uuid, track.name);
     });
 
     removeBtn.addEventListener('click', () => {
@@ -125,6 +127,7 @@ function buildTrack(btn, name, color, pitchCount){
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
         tracks.splice(trackIdx, 1);
+        deleteSound(uuid, track.name);
     });
     
     playTrackBtn.addEventListener('click', () => {
@@ -212,6 +215,50 @@ export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pit
     instrumentBtn.disabled = true;
 }
 
+function deleteSound(uuid, sound){
+    fetch(`sounds/track/${uuid}/${sound}`, { method: "DELETE" }).then((response) => {
+        response.json().then((body) => {
+            console.log("Deleted: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function deleteNote(note){
+    fetch(`sounds/track/${uuid}`, { 
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function saveNote(note){
+    fetch(`sounds/`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
 function canvasEvents(track){
     track.canvas.addEventListener('mousedown', (e) => {
         track.isDrawing = true;
@@ -228,6 +275,7 @@ function canvasEvents(track){
         });
         if (delete_note){
             track.ctx.fillStyle = "white";
+            deleteNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})
         } else{
             track.notes.push({time, pitch});
             track.ctx.fillStyle = track.color;
@@ -236,7 +284,8 @@ function canvasEvents(track){
                 "time": 0,
                 "pitch": scalePitch(pitch, track.canvas),
                 "volume": parseFloat(track.slider.value)
-            }]);      
+            }]);
+            saveNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})      
         }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
         drawGrid(track.ctx);
@@ -279,6 +328,7 @@ clearAllBtn.addEventListener('click', () => {
         initCanvas(track);
     }
     pauseAllTracks();
+    deleteTrack(uuid);
 });
 
 async function loadSound(url) {
