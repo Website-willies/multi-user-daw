@@ -131,6 +131,7 @@ function buildTrack(btn, name, color, pitchCount){
     });
     
     playTrackBtn.addEventListener('click', () => {
+        console.log(track.notes)
         let sequence = [];
         for (let oneshot of track.notes){
             sequence.push({
@@ -216,7 +217,7 @@ export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pit
 }
 
 function deleteSound(uuid, sound){
-    fetch(`sounds/track/${uuid}/${sound}`, { method: "DELETE" }).then((response) => {
+    fetch(`sounds/track/${uuid}?sound=${encodeURIComponent(sound)}`, { method: "DELETE" }).then((response) => {
         response.json().then((body) => {
             console.log("Deleted: ", body)
         }).catch(error => {
@@ -304,11 +305,10 @@ async function loadOneshots() {
     console.error('Error loading oneshots:', err);
   }
 }
+
 function showInstrumentCategories() {
   listDiv.innerHTML = `
-    <h3>Select an Instrument Type</h3>
-    <label for="row-count-input">Pitch Count:</label>
-    <input type="number" id="row-count-input" value="4" min="1" max="24" step="1">
+    
   `;
   instrumentData.forEach(({ instrument }) => {
     const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;

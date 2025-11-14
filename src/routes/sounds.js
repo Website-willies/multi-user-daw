@@ -3,65 +3,6 @@ import pool from '../db/pool.js';
 
 const router = Router();
 
-// GET many by UUID
-router.get('/track/:uuid', async (req, res) => {
-    const { uuid } = req.params;
-    try {
-        const result = await pool.query('SELECT * FROM sounds WHERE uuid = $1;',
-          [uuid]
-        );
-        if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error fetching sounds:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-})
-
-// POST many by UUID
-router.post('/track/:uuid', async (req, res) => {
-  const { uuid } = req.params;
-  const sounds = req.body;
-
-  try {
-    const values = [];
-    const params = [];
-
-    sounds.forEach((s, i) => {
-      const base = i * 4;
-      values.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`);
-      params.push(uuid, s.sound, s.pitch, s.time);
-    });
-
-    const query = `
-      INSERT INTO sounds (uuid, sound, pitch, time)
-      VALUES ${values.join(', ')}
-      RETURNING *;
-    `;
-
-    const result = await pool.query(query, params);
-    res.status(200).json({ inserted: result.rows });
-  } catch (err) {
-    console.error('Error inserting sounds:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-
-// DELETE many by UUID
-router.delete('/track/:uuid', async (req, res) => {
-  const { uuid } = req.params;
-  try {
-    const result = await pool.query('DELETE FROM sounds WHERE uuid = $1 RETURNING *;', [uuid]);
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
-    res.status(200).json({ message: 'Deleted', deleted: result.rows });
-  } catch (err) {
-    console.error('Error deleting sounds:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
 // GET all
 router.get('/', async (req, res) => {
   try {
@@ -182,8 +123,6 @@ router.post('/track/:uuid', async (req, res) => {
   }
 });
 
-
-
 // DELETE many by UUID
 router.delete('/track/:uuid', async (req, res) => {
   const { uuid } = req.params;
@@ -193,7 +132,6 @@ router.delete('/track/:uuid', async (req, res) => {
     if (!sound && !pitch && !time){
       result = await pool.query('DELETE FROM sounds WHERE uuid = $1 RETURNING *;', [uuid]);
     }else {
-      const {sound, pitch, time, pitch_count} = req.body;
       result = await pool.query('DELETE FROM sounds WHERE uuid = $1 AND sound = $2 AND pitch = $3 AND time = $4 RETURNING *;', [uuid, sound, pitch, time]);
     }
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });
@@ -204,8 +142,9 @@ router.delete('/track/:uuid', async (req, res) => {
   }
 });
 
-router.delete('/track/:uuid/:sound', async (req, res) => {
-  const { uuid, sound } = req.params;
+router.delete('/track/:uuid', async (req, res) => {
+  const { uuid } = req.params;
+  const { sound } = req.query;
   try {
     const result = await pool.query('DELETE FROM sounds WHERE uuid = $1 AND sound = $2 RETURNING *;', [uuid, sound]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });

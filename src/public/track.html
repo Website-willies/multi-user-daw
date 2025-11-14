@@ -18,8 +18,8 @@
                 <input type="number" id="bpm-input" value="120" min="30" max="300" step="1">
                 <label for="divisions-input">Beat Divisions:</label>
                 <input type="number" id="divisions-input" value="2" min="1" max="32" step="1">
-                <label for="row-count-input">Pitch Count:</label>
-                <input type="number" id="row-count-input" value="4" min="1" max="24" step="1">
+                <!-- <label for="row-count-input">Pitch Count:</label>
+                <input type="number" id="row-count-input" value="4" min="1" max="24" step="1"> -->
                 <div style="flex:1;"></div>
                 <button id="back">Back</button>
                 <button id="save">Save Track</button>
@@ -29,7 +29,9 @@
         <div id="tracks"></div>
         <div class="modal" id="instrument-modal">
             <div class="modal-content">
-                <h2>Select Instrument</h2>
+                <h3>Select an Instrument Type</h3>
+                <label for="row-count-input">Pitch Count:</label>
+                <input type="number" id="row-count-input" value="4" min="1" max="24" step="1">
                 <div class="instrument-list">
                     <!-- <button class="instrument-btn" data-instrument="sample" data-color="#ff6b6b">sample</button> -->
                     <button class="cancel-btn" id="cancelBtn">Cancel</button>
@@ -45,10 +47,13 @@
 
         if (uuid){
             const tracks = await getTrack(uuid)
-            for (const [instrument, data] of Object.entries(tracks)){
-                let instrumentBtn = document.querySelector(`[data-instrument="${instrument}"]`);
-                let instrumentColor = instrumentBtn.dataset.color;
-                rebuildTrack(instrumentBtn, instrument, instrumentColor, data.pitch_count, data.notes);
+            if (!tracks.hasOwnProperty('error')){
+                    for (const [instrument, data] of Object.entries(tracks)){
+                    let sound = instrument.split('/')[0]
+                    let instrumentBtn = document.querySelector(`[data-instrument="${sound}"]`);
+                    let instrumentColor = instrumentBtn.dataset.color;
+                    rebuildTrack(instrumentBtn, instrument, instrumentColor, data.pitch_count, data.notes);
+                }
             }
         }
 
