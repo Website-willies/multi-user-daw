@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const oneshotsPath = path.join(__dirname, "oneshots");
 
 let app = express();
-let hostname = "localhost";
+let hostname = "0.0.0.0";
 let port = 3000;
 
 app.use(express.json());
