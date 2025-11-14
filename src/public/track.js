@@ -13,6 +13,7 @@ let bpm = 120;
 let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
+let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 
 function noteToFrequency(semitoneOffsetFromA4) {
   return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
@@ -26,7 +27,6 @@ const scalePitch = (pitchPx, canvas) => {
 
     const baseOffset = semitoneOffset - (totalRows / 2);
     const freq = 440 * Math.pow(2, baseOffset / 12);
-    console.log(freq);
     return freq / 440; 
 };
 
@@ -35,7 +35,7 @@ const scaleTime = (time) => {
 };
 
 let gridSize = 20;
-let canvasWidth = 1200;
+let canvasWidth = 1280;
 let canvasHeight = 20;
 let tracks = []
 
@@ -48,7 +48,7 @@ cancelBtn.addEventListener('click', () => {
     modal.classList.remove('active');
 });
 
-function buildTrack(btn, name, color){
+function buildTrack(btn, name, color, pitchCount){
     let trackDiv = document.createElement('div');
     trackDiv.className = 'track';
     let trackHeader = document.createElement('div');
@@ -82,11 +82,9 @@ function buildTrack(btn, name, color){
     sliderContainer.appendChild(sliderLabel);
     sliderContainer.appendChild(slider);
 
-    let colCount = Number(document.getElementById("row-count-input").value);
-
     let canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
-    canvas.height = canvasHeight * colCount;
+    canvas.height = canvasHeight * pitchCount;
 
     let ctx = canvas.getContext('2d');
     let path = oneshotsPath + name + ".wav";
@@ -104,7 +102,7 @@ function buildTrack(btn, name, color){
     let track = {
         name,
         path,
-        colCount,
+        pitchCount,
         color,
         canvas,
         ctx,
@@ -120,6 +118,7 @@ function buildTrack(btn, name, color){
     clearBtn.addEventListener('click', () => {
         pauseAllTracks();
         initCanvas(track);
+        deleteSound(uuid, track.name);
     });
 
     removeBtn.addEventListener('click', () => {
@@ -128,6 +127,7 @@ function buildTrack(btn, name, color){
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
         tracks.splice(trackIdx, 1);
+        deleteSound(uuid, track.name);
     });
     
     playTrackBtn.addEventListener('click', () => {
@@ -195,10 +195,68 @@ function initCanvas(track){
 
 function addTrack(instrumentBtn, instrumentName, instrumentColor){
     // Build track HTML
-    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor);
+    let pitchCount = Number(document.getElementById("row-count-input").value);
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
     tracks.push(track);
     initCanvas(track);
     canvasEvents(track);
+}
+
+export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount, notes){
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
+    initCanvas(track);
+    canvasEvents(track);
+    track.notes = notes;
+    tracks.push(track);
+    track.ctx.fillStyle = track.color;
+    for (let note of notes){
+        track.ctx.fillRect(note.time, note.pitch, gridSize, gridSize);
+    }
+    instrumentBtn.disabled = true;
+}
+
+function deleteSound(uuid, sound){
+    fetch(`sounds/track/${uuid}/${sound}`, { method: "DELETE" }).then((response) => {
+        response.json().then((body) => {
+            console.log("Deleted: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function deleteNote(note){
+    fetch(`sounds/track/${uuid}`, { 
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function saveNote(note){
+    fetch(`sounds/`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
 }
 
 function canvasEvents(track){
@@ -217,6 +275,7 @@ function canvasEvents(track){
         });
         if (delete_note){
             track.ctx.fillStyle = "white";
+            deleteNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})
         } else{
             track.notes.push({time, pitch});
             track.ctx.fillStyle = track.color;
@@ -225,7 +284,8 @@ function canvasEvents(track){
                 "time": 0,
                 "pitch": scalePitch(pitch, track.canvas),
                 "volume": parseFloat(track.slider.value)
-            }]);      
+            }]);
+            saveNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})      
         }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
         drawGrid(track.ctx);
@@ -307,6 +367,7 @@ clearAllBtn.addEventListener('click', () => {
         initCanvas(track);
     }
     pauseAllTracks();
+    deleteTrack(uuid);
 });
 
 async function loadSound(url) {
@@ -361,14 +422,16 @@ function compareByTime(a, b)
     return a.time - b.time;
 }
 
-export async function getTrack(uuid) {
-  try {
-    const res = await fetch(`/sounds/track/${uuid}`);
-    const body = await res.json();
-    console.log("Retrieved:", body);
-  } catch (err) {
-    console.error(err);
-  }
+export async function getTrack(uuid){
+    return fetch(`sounds/track/${uuid}`)
+    .then((response) => response.json())
+    .then((body) => {
+      return body;
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      throw error;
+    });
 }
 
 
@@ -382,7 +445,8 @@ export async function saveTrack(uuid){
             body.push({
                 "sound": track.name,
                 "pitch": oneshot.pitch,
-                "time": oneshot.time
+                "time": oneshot.time,
+                "pitch_count": track.pitchCount,
             })
         }
     }

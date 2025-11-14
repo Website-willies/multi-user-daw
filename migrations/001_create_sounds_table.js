@@ -15,6 +15,7 @@ export const up = (pgm) => {
         sound: { type: 'text', notNull: true },
         pitch: { type: 'integer', notNull: true },
         time: { type: 'integer', notNull: true },
+        pitch_count: { type: 'integer', notNull: true},
     });
 };
 
