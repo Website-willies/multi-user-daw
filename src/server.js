@@ -1,5 +1,6 @@
 import express from "express";
 import fs from 'fs';
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from 'url';
 import soundRoutes from "./routes/sounds.js";
@@ -11,6 +12,12 @@ const oneshotsPath = path.join(__dirname, "oneshots");
 let app = express();
 let hostname = "0.0.0.0";
 let port = 3000;
+
+app.use(cors({
+  origin: ['https://sixtysevendogs.com'],
+  methods: ['GET', 'PUT', 'POST', 'DELETE'],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.static("src/public"));

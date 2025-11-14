@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/liamxostrander/multi-user-daw#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "node-pg-migrate": "^8.0.3",
