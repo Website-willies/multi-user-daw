@@ -60,7 +60,6 @@
   }
 
   document.getElementById("daw").addEventListener("click", () => {
-    let uuid;
     const name = prompt("Enter a name for this track:");
     if (!name){
         alert("Please enter a name.")
@@ -74,19 +73,18 @@
         if(confirm('A track already exists by that name. Overwrite?')){} else { return; }
     }
 
-    fetch('/assign').then((response) => {
-        response.json().then((body) => {
-            uuid = body.uuid
-            cookies[name] = uuid
-            for (const [k, v] of Object.entries(cookies)) { document.cookie = `${k}=${v};`; }
-            saveTrack(uuid)
-        }).catch(error => {
-            console.log(error) // parse error
-        });
-    }).catch(error => {
-        console.log(error) // fetch error
+    fetch('/assign').then((response) => response.json())
+    .then((body) => {
+      const uuid = body.uuid;
+      cookies[name] = uuid;
+      for (const [k, v] of Object.entries(cookies)) {
+        document.cookie = `${k}=${v};`;
+      }
+      window.location.replace(`/track.html?uuid=${uuid}`);
+    })
+    .catch((error) => {
+      console.error(error);
     });
-    window.location.replace(`/track.html?uuid=${uuid}`);
   });
 </script>
 </html>
