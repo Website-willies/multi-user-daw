@@ -4,6 +4,7 @@ let addInstrumentBtn = document.getElementById("addInstrument");
 let clearAllBtn = document.getElementById("clearAll");
 let playAllBtn = document.getElementById("playAll");
 let pauseAllBtn = document.getElementById("pauseAll");
+let downloadMixBtn = document.getElementById("downloadMixBtn");
 let modal = document.getElementById("instrument-modal");
 let cancelBtn = document.getElementById("cancelBtn");
 let instrumentBtns = document.getElementsByClassName("instrument-btn");
@@ -12,6 +13,7 @@ let bpm = 120;
 let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
+let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 
 function noteToFrequency(semitoneOffsetFromA4) {
   return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
@@ -25,7 +27,6 @@ const scalePitch = (pitchPx, canvas) => {
 
     const baseOffset = semitoneOffset - (totalRows / 2);
     const freq = 440 * Math.pow(2, baseOffset / 12);
-    console.log(freq);
     return freq / 440; 
 };
 
@@ -34,7 +35,7 @@ const scaleTime = (time) => {
 };
 
 let gridSize = 20;
-let canvasWidth = 1200;
+let canvasWidth = 1280;
 let canvasHeight = 20;
 let tracks = []
 
@@ -47,7 +48,7 @@ cancelBtn.addEventListener('click', () => {
     modal.classList.remove('active');
 });
 
-function buildTrack(btn, name, color){
+function buildTrack(btn, name, color, pitchCount){
     let trackDiv = document.createElement('div');
     trackDiv.className = 'track';
     let trackHeader = document.createElement('div');
@@ -81,11 +82,9 @@ function buildTrack(btn, name, color){
     sliderContainer.appendChild(sliderLabel);
     sliderContainer.appendChild(slider);
 
-    let colCount = Number(document.getElementById("row-count-input").value);
-
     let canvas = document.createElement('canvas');
     canvas.width = canvasWidth;
-    canvas.height = canvasHeight * colCount;
+    canvas.height = canvasHeight * pitchCount;
 
     let ctx = canvas.getContext('2d');
     let path = oneshotsPath + name + ".wav";
@@ -103,7 +102,7 @@ function buildTrack(btn, name, color){
     let track = {
         name,
         path,
-        colCount,
+        pitchCount,
         color,
         canvas,
         ctx,
@@ -119,6 +118,7 @@ function buildTrack(btn, name, color){
     clearBtn.addEventListener('click', () => {
         pauseAllTracks();
         initCanvas(track);
+        deleteSound(uuid, track.name);
     });
 
     removeBtn.addEventListener('click', () => {
@@ -127,9 +127,11 @@ function buildTrack(btn, name, color){
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
         tracks.splice(trackIdx, 1);
+        deleteSound(uuid, track.name);
     });
     
     playTrackBtn.addEventListener('click', () => {
+        console.log(track.notes)
         let sequence = [];
         for (let oneshot of track.notes){
             sequence.push({
@@ -194,10 +196,68 @@ function initCanvas(track){
 
 function addTrack(instrumentBtn, instrumentName, instrumentColor){
     // Build track HTML
-    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor);
+    let pitchCount = Number(document.getElementById("row-count-input").value);
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
     tracks.push(track);
     initCanvas(track);
     canvasEvents(track);
+}
+
+export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount, notes){
+    let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
+    initCanvas(track);
+    canvasEvents(track);
+    track.notes = notes;
+    tracks.push(track);
+    track.ctx.fillStyle = track.color;
+    for (let note of notes){
+        track.ctx.fillRect(note.time, note.pitch, gridSize, gridSize);
+    }
+    instrumentBtn.disabled = true;
+}
+
+function deleteSound(uuid, sound){
+    fetch(`sounds/track/${uuid}/${encodeURIComponent(sound)}`, { method: "DELETE" }).then((response) => {
+        response.json().then((body) => {
+            console.log("Deleted: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function deleteNote(note){
+    fetch(`sounds/track/${uuid}`, { 
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
+}
+
+function saveNote(note){
+    fetch(`sounds/`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(note)
+    }).then((response) => {
+        response.json().then((body) => {
+            console.log("Created: ", body)
+        }).catch(error => {
+            console.error(error); // parse error
+        });
+    }).catch(error => {
+        console.log(error) // fetch error
+    });
 }
 
 function canvasEvents(track){
@@ -216,6 +276,7 @@ function canvasEvents(track){
         });
         if (delete_note){
             track.ctx.fillStyle = "white";
+            deleteNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})
         } else{
             track.notes.push({time, pitch});
             track.ctx.fillStyle = track.color;
@@ -224,7 +285,8 @@ function canvasEvents(track){
                 "time": 0,
                 "pitch": scalePitch(pitch, track.canvas),
                 "volume": parseFloat(track.slider.value)
-            }]);      
+            }]);
+            saveNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})      
         }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
         drawGrid(track.ctx);
@@ -232,41 +294,80 @@ function canvasEvents(track){
 }
 
 const listDiv = document.querySelector('.instrument-list');
-try {
+let instrumentData = [];
+let currentView = "categories";
+async function loadOneshots() {
+  try {
     const res = await fetch('/list-oneshots');
-    const names = await res.json();
-
-    for (const name of names) {
-        const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
-
-        const btn = document.createElement('button');
-        btn.classList.add('instrument-btn');
-        btn.dataset.instrument = name;
-        btn.dataset.color = color;
-        btn.textContent = name;
-
-        listDiv.insertBefore(btn, cancelBtn);
-    }
-
-} catch (err) {
+    instrumentData = await res.json();
+    showInstrumentCategories();
+  } catch (err) {
     console.error('Error loading oneshots:', err);
+  }
 }
 
-for(let instrumentBtn of instrumentBtns){
-    instrumentBtn.addEventListener('click', () => {
-        let instrumentName = instrumentBtn.dataset.instrument;
-        let instrumentColor = instrumentBtn.dataset.color;
-        instrumentBtn.disabled = true;
-        addTrack(instrumentBtn, instrumentName, instrumentColor);
-        modal.classList.remove('active');
-    });
+function showInstrumentCategories() {
+  listDiv.innerHTML = `
+    
+  `;
+  instrumentData.forEach(({ instrument }) => {
+    const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+    const btn = document.createElement('button');
+    btn.classList.add('instrument-btn', 'instrument-category-btn');
+    btn.dataset.kind = 'category';
+    btn.dataset.instrument = instrument;
+    btn.dataset.color = color;
+    btn.textContent = instrument;
+    btn.addEventListener('click', () => showInstrumentFiles(instrument));
+    listDiv.appendChild(btn);
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.classList.add('cancel-btn');
+  cancelBtn.id = 'cancelBtn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+  listDiv.appendChild(cancelBtn);
 }
+
+function showInstrumentFiles(instrumentName) {
+  const instrument = instrumentData.find(i => i.instrument === instrumentName);
+  if (!instrument) return;
+
+  listDiv.innerHTML = `
+    <h3>${instrumentName}</h3>
+    <button id="backToCategories">← Back</button>
+  `;
+
+  document.getElementById('backToCategories').addEventListener('click', showInstrumentCategories);
+
+  instrument.files.forEach(file => {
+    const color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+    const btn = document.createElement('button');
+    btn.classList.add('instrument-btn');
+    btn.dataset.kind = 'file';
+    btn.dataset.instrument = `${instrumentName}/${file}`;
+    btn.dataset.color = color;
+    btn.textContent = file;
+
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      addTrack(btn, `${instrumentName}/${file}`, color);
+      modal.classList.remove('active');
+    });
+
+    listDiv.appendChild(btn);
+  });
+}
+
+await loadOneshots();
 
 clearAllBtn.addEventListener('click', () => {
     for(let track of tracks){
         initCanvas(track);
     }
     pauseAllTracks();
+    deleteTrack(uuid);
 });
 
 async function loadSound(url) {
@@ -322,16 +423,17 @@ function compareByTime(a, b)
 }
 
 export async function getTrack(uuid){
-    fetch(`sounds/track/${uuid}`).then((response) => {
-        response.json().then((body) => {
-            console.log("Retrieved: ", body)
-        }).catch(error => {
-            console.error(error); // parse error
-        });
-    }).catch(error => {
-        console.log(error) // fetch error
+    return fetch(`sounds/track/${uuid}`)
+    .then((response) => response.json())
+    .then((body) => {
+      return body;
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      throw error;
     });
 }
+
 
 export async function saveTrack(uuid){
     // this is lazy but yeah let's wipe and rewrite the track from scratch EVERY SINGLE TIME WE SAVE IT
@@ -343,7 +445,8 @@ export async function saveTrack(uuid){
             body.push({
                 "sound": track.name,
                 "pitch": oneshot.pitch,
-                "time": oneshot.time
+                "time": oneshot.time,
+                "pitch_count": track.pitchCount,
             })
         }
     }
@@ -416,5 +519,114 @@ function pauseAllTracks(){
         }
     }
 }
+
+function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels,
+          length = buffer.length * numOfChan * 2 + 44,
+          bufferArray = new ArrayBuffer(length),
+          view = new DataView(bufferArray),
+          channels = [],
+          sampleRate = buffer.sampleRate;
+    
+    let offset = 0;
+
+    function writeString(str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+        offset += str.length;
+    }
+
+    writeString('RIFF');
+    view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true);
+    offset += 4;
+    writeString('WAVE');
+    writeString('fmt ');
+    view.setUint32(offset, 16, true);
+    offset += 4;
+    view.setUint16(offset, 1, true);
+    offset += 2;
+    view.setUint16(offset, numOfChan, true);
+    offset += 2;
+    view.setUint32(offset, sampleRate, true);
+    offset += 4;
+    view.setUint32(offset, sampleRate * numOfChan * 2, true);
+    offset += 4;
+    view.setUint16(offset, numOfChan * 2, true);
+    offset += 2;
+    view.setUint16(offset, 16, true);
+    offset += 2;
+    writeString('data');
+    view.setUint32(offset, buffer.length * numOfChan * 2, true);
+    offset += 4;
+
+    for (let i = 0; i < numOfChan; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    let interleaved = new Float32Array(buffer.length * numOfChan);
+    for (let i = 0; i < buffer.length; i++) {
+        for (let c = 0; c < numOfChan; c++) {
+            interleaved[i * numOfChan + c] = channels[c][i];
+        }
+    }
+
+    let index = 0;
+    for (let i = 0; i < interleaved.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, interleaved[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+}
+
+downloadMixBtn.addEventListener('click', async () => {
+    await updateBPMAndDivisions();
+
+    let events = [];
+    for (let track of tracks) {
+        if (track.muted) continue;
+        for (let oneshot of track.notes) {
+            events.push({
+                url: track.path,
+                time: scaleTime(oneshot.time),
+                pitch: scalePitch(oneshot.pitch, track.canvas),
+                volume: parseFloat(track.slider.value)
+            });
+        }
+    }
+
+    events.sort((a, b) => a.time - b.time);
+    const buffers = {};
+    const urls = [...new Set(events.map(e => e.url))];
+    for (const url of urls) {
+        buffers[url] = await loadSound(url);
+    }
+
+    const duration = Math.max(...events.map(e => e.time)) * secondsPerBeat + 2;
+    const sampleRate = audioCtx.sampleRate;
+    const offlineCtx = new OfflineAudioContext(2, duration * sampleRate, sampleRate);
+
+    for (const e of events) {
+        const src = offlineCtx.createBufferSource();
+        src.buffer = buffers[e.url];
+        src.playbackRate.value = e.pitch;
+        const gainNode = offlineCtx.createGain();
+        gainNode.gain.value = e.volume ?? 1.0;
+        src.connect(gainNode).connect(offlineCtx.destination);
+        src.start(e.time * secondsPerBeat);
+    }
+
+    const rendered = await offlineCtx.startRendering();
+    const wavBlob = audioBufferToWav(rendered);
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(wavBlob);
+    a.download = 'mix.wav';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+});
+
 
 pauseAllBtn.addEventListener('click', pauseAllTracks);

@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const oneshotsPath = path.join(__dirname, "oneshots");
 
 let app = express();
-let hostname = "localhost";
+let hostname = "0.0.0.0";
 let port = 3000;
 
 app.use(express.json());
@@ -22,15 +22,23 @@ app.get("/assign", (req, res) => {
   res.status(200).json({ "uuid": crypto.randomUUID() })
 });
 
-app.get('/list-oneshots', (req, res) => {
-  let oneshot_names = [];
-  fs.readdir(oneshotsPath, (err, files) => {
-    if (err) return res.status(500).json({ error: err.message });
-    for (let file of files){
-      oneshot_names.push(path.parse(file).name)
-    }
-    res.json(oneshot_names);
-  });
+app.get("/list-oneshots", (req, res) => {
+  try {
+    const instruments = fs.readdirSync(oneshotsPath, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(dir => {
+        const instrumentName = dir.name;
+        const files = fs.readdirSync(path.join(oneshotsPath, instrumentName))
+          .filter(f => f.endsWith(".wav"))
+          .map(f => f.replace(/\.wav$/i, ""));
+        return { instrument: instrumentName, files };
+      });
+
+    res.json(instruments);
+  } catch (err) {
+    console.error("Error reading oneshots:", err);
+    res.status(500).json({ error: "Failed to read oneshots" });
+  }
 });
 
 app.listen(port, hostname, () => {
