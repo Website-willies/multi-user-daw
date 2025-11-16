@@ -142,9 +142,8 @@ router.delete('/track/:uuid', async (req, res) => {
   }
 });
 
-router.delete('/track/:uuid', async (req, res) => {
-  const { uuid } = req.params;
-  const { sound } = req.query;
+router.delete('/track/:uuid/:sound', async (req, res) => {
+  const { uuid, sound } = req.params;
   try {
     const result = await pool.query('DELETE FROM sounds WHERE uuid = $1 AND sound = $2 RETURNING *;', [uuid, sound]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Not found' });

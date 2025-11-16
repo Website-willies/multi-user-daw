@@ -217,7 +217,7 @@ export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pit
 }
 
 function deleteSound(uuid, sound){
-    fetch(`sounds/track/${uuid}?sound=${encodeURIComponent(sound)}`, { method: "DELETE" }).then((response) => {
+    fetch(`sounds/track/${uuid}/${encodeURIComponent(sound)}`, { method: "DELETE" }).then((response) => {
         response.json().then((body) => {
             console.log("Deleted: ", body)
         }).catch(error => {
