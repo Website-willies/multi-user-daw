@@ -92,10 +92,7 @@
                 }).catch(error => {
                     console.log(error) // fetch error
                 });
-            } else {
-                saveTrack(uuid)
             }
-
         });
 
         document.getElementById("delete").addEventListener("click", () => {
@@ -110,12 +107,8 @@
                             document.cookie = `${k}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
                         }
                     }
-
-                    deleteTrack(uuid)
                 }
-
                 window.location.replace(`/track.html`);
-
             } else { 
                 return; 
             }
