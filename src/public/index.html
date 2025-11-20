@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <title>Willies</title>
+
   <style>
     body {
       display: flex;
@@ -12,79 +13,291 @@
       align-items: center;
       height: 100vh;
       margin: 0;
+      font-family: sans-serif;
+      animation: gradientShift 12s ease infinite;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     p1 {
-      font-size: 24px;
-      display: block;
+      font-size: 32px;
+      color: white;
+      margin-bottom: 30px;
     }
 
     button {
-      padding: 8px 15px;
+      padding: 12px 25px;
+      font-size: 18px;
+      margin: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
     }
+
+    button:hover {
+      background: white;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    .close-btn {
+      background: rgba(255, 0, 0, 0.5);
+      color: white;
+    }
+    .session-btn {
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: 2px solid lightgray;
+      background: white;
+      text-align: left;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    .session-btn:hover {
+      background: #e2e2e2;
+    }
+
+    .delete-session {
+      background: rgba(255, 0, 0, 0.6);
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .delete-session:hover {
+      background: rgba(255, 0, 0, 0.8);
+    }
+
+    .close-btn:hover {
+      background: rgb(210, 210, 210);
+    }
+
+    .session-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    body.dark {
+      background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #000000);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+      color: white;
+    }
+
+    body.dark button {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    body.dark button:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    body.dark .modal-content {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #444;
+    }
+
+    body.dark .session-btn {
+      background: #222;
+      border-color: #555;
+      color: white;
+    }
+
+    body.dark .session-btn:hover {
+      background: #333;
+    }
+
+    body.dark .delete-session {
+      background: rgba(255,60,60,0.6);
+    }
+
+    body.dark .delete-session:hover {
+      background: rgba(255,60,60,0.8);
+    }
+
+
   </style>
 </head>
+
 <body>
 
-  <p1>Welcome from the Website Willies!</p1>
-  <div id="session-list"></div>
-  <button id="daw" type="button">Start a session!</button> 
+  <p1>Welcome to the Website Willies DAW!</p1>
+
+  <button id="daw">Start a Session</button>
+  <button id="see-tracks">See Saved Tracks</button>
+  <button id="toggle-dark">Toggle Dark Mode</button>
+
+
+  <!-- === MODAL FOR SAVED TRACKS === -->
+  <div id="tracks-modal" class="modal">
+    <div class="modal-content">
+      <h3>Saved Sessions</h3>
+      <div id="saved-list"></div>
+      <button class="close-btn" id="close-tracks">Close</button>
+    </div>
+  </div>
 
 </body>
 
 <script>
-  const sessionsList = document.getElementById("session-list");
-  const cookies = document.cookie 
-    ? Object.fromEntries(document.cookie.split('; ').map(x => x.split('=')))
-    : {};
 
-  console.log(cookies)
-  if (cookies) {
-    try {
+  const toggleDarkBtn = document.getElementById("toggle-dark");
 
-      for (const [key, val] of Object.entries(cookies)) {
-        const temp = document.createElement("button");
-        temp.textContent = key;
-        temp.addEventListener("click", () => {
-          window.location.replace(`/track.html?uuid=${val}`);
-        })
-        sessionsList.appendChild(temp);
-      }
-
-    } catch {
-      sessionsList.textContent = "Error reading session data.";
-    }
-  } else {
-    sessionsList.textContent = "No previous sessions.";
+  // Load stored mode
+  if (localStorage.getItem("dark-mode") === "true") {
+    document.body.classList.add("dark");
   }
 
+  // Toggle
+  toggleDarkBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    const enabled = document.body.classList.contains("dark");
+    localStorage.setItem("dark-mode", enabled);
+  });
+  // Load cookies (saved tracks)
+  let cookies = document.cookie
+    ? Object.fromEntries(document.cookie.split("; ").map((x) => x.split("=")))
+    : {};
+
+  // Helper: delete a cookie
+  function deleteCookie(name) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+
+  // --------------------------
+  // Start New Session
+  // --------------------------
   document.getElementById("daw").addEventListener("click", () => {
     const name = prompt("Enter a name for this track:");
-    if (!name){
-        alert("Please enter a name.")
-        return;
-    };
-    if (name.includes("=")){
-        alert("Equals sign not permitted in track name.")
-        return;
-    }; 
-    if (name in cookies){
-        if(confirm('A track already exists by that name. Overwrite?')){} else { return; }
+    if (!name) {
+      alert("Please enter a name.");
+      return;
+    }
+    if (name.includes("=")) {
+      alert("Equals sign not permitted in track name.");
+      return;
+    }
+    if (name in cookies) {
+      if (!confirm("A track with that name exists. Overwrite?")) return;
     }
 
-    fetch('/assign').then((response) => response.json())
-    .then((body) => {
-      const uuid = body.uuid;
-      cookies[name] = uuid;
-      for (const [k, v] of Object.entries(cookies)) {
-        document.cookie = `${k}=${v};`;
-      }
-      window.location.replace(`/track.html?uuid=${uuid}`);
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+    fetch("/assign")
+      .then((response) => response.json())
+      .then((body) => {
+        const uuid = body.uuid;
+
+        // Save cookie
+        cookies[name] = uuid;
+        for (const [k, v] of Object.entries(cookies)) {
+          document.cookie = `${k}=${v};`;
+        }
+
+        window.location.replace(`/track.html?uuid=${uuid}`);
+      })
+      .catch((error) => console.error(error));
   });
+
+  // --------------------------
+  // Modal Logic
+  // --------------------------
+  const modal = document.getElementById("tracks-modal");
+  const savedList = document.getElementById("saved-list");
+  const seeTracksBtn = document.getElementById("see-tracks");
+  const closeTracksBtn = document.getElementById("close-tracks");
+
+  // Open modal → rebuild list
+  seeTracksBtn.addEventListener("click", () => {
+    refreshSavedList();
+    modal.classList.add("active");
+  });
+
+  // Close modal
+  closeTracksBtn.addEventListener("click", () => {
+    modal.classList.remove("active");
+  });
+
+  // --------------------------
+  // Build session list UI
+  // --------------------------
+  function refreshSavedList() {
+    savedList.innerHTML = "";
+
+    const names = Object.keys(cookies);
+
+    if (names.length === 0) {
+      savedList.innerHTML = "<p>No saved tracks.</p>";
+      return;
+    }
+
+    names.forEach((name) => {
+      const uuid = cookies[name];
+
+      // Container row
+      const row = document.createElement("div");
+      row.className = "session-row";
+
+      // Main button (styled like instruments)
+      const btn = document.createElement("button");
+      btn.className = "session-btn";
+      btn.textContent = name;
+      btn.onclick = () => window.location.replace(`/track.html?uuid=${uuid}`);
+
+      // Delete button
+      const del = document.createElement("button");
+      del.className = "delete-session";
+      del.textContent = "X";
+
+      del.onclick = () => {
+        if (confirm(`Delete session "${name}"?`)) {
+          deleteCookie(name);
+          delete cookies[name]; // remove in memory
+          refreshSavedList();   // redraw modal
+        }
+      };
+
+      row.appendChild(btn);
+      row.appendChild(del);
+      savedList.appendChild(row);
+    });
+  }
+
 </script>
+
 </html>
