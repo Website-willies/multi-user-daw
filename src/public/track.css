@@ -98,3 +98,171 @@ canvas {
     flex-direction: column;
     align-items: center;
 }
+
+.track {
+    background: white;
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Track header (light mode) */
+.track-header {
+    background: rgba(255, 255, 255, 0.85);
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: inset 0px 0px 3px rgba(0,0,0,0.08);
+}
+
+/* Canvas background in light mode */
+body:not(.dark) canvas {
+    background: #ffffff !important;
+    border-color: #ccc !important;
+}
+
+/* Light-mode grid brightness (undo dark filter) */
+body:not(.dark) canvas {
+    filter: none;
+}
+
+/* Buttons inside track header */
+body:not(.dark) .track-header button {
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(0,0,0,0.15);
+    color: black;
+}
+
+body:not(.dark) .track-header button:hover {
+    background: white;
+    border-color: rgba(0,0,0,0.25);
+}
+
+/* Volume slider label */
+body:not(.dark) .volume-slider-value {
+    color: black;
+}
+
+
+body {
+    margin: 1.5;
+    font-family: sans-serif;
+    background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+p1 {
+    font-size: 28px;
+    color: white;
+    margin-bottom: 20px;
+}
+
+button {
+    font-size: 18px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+button:hover {
+    background: white;
+}
+/* ===== DARK MODE ===== */
+body.dark {
+    background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #000000);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+    color: white;
+}
+
+body.dark .controls button {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+body.dark .controls button:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+body.dark canvas {
+    border-color: #888;
+}
+
+body.dark .modal-content {
+    background: #1a1a1a;
+    color: white;
+}
+
+body.dark .instrument-btn {
+    background: #222;
+    color: white;
+    border-color: #666;
+}
+
+body.dark .instrument-btn:hover {
+    background: #333;
+}
+
+body.dark .cancel-btn {
+    background: rgba(255,0,0,0.5);
+    color: white;
+}
+
+/* ===== DARK MODE: TRACK CANVAS GRID ===== */
+
+/* Track container background */
+body.dark .track {
+    background: #111;
+    padding: 5px;
+    border-radius: 6px;
+}
+
+/* Canvas background */
+body.dark canvas {
+    background: #1a1a1a !important;
+    border-color: #555 !important;
+}
+
+/* Grid lines */
+body.dark canvas {
+    --grid-line: #444;
+}
+
+/* override drawGrid colors using global filter trick */
+body.dark canvas {
+    filter: brightness(0.8);
+}
+
+/* Track headers */
+body.dark .track-header {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px;
+    border-radius: 6px;
+}
+
+/* Clear, Remove, Play, Mute buttons in dark mode */
+body.dark .track-header button {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+}
+
+body.dark .track-header button:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+/* Volume slider label text */
+body.dark .volume-slider-value {
+    color: white;
+}
+
+
