@@ -17,6 +17,19 @@ canvas {
     gap: 10px;
     align-items: center;
 }
+.controls .input_box {
+    padding: 8px 18px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+}
+.controls .input_box input {
+    font-size: 18px;
+}
 .cancel-btn{
     margin-top: 15px;
     background: rgba(255, 0, 0, 0.5);
@@ -71,16 +84,15 @@ canvas {
     color: black;
     border: 2px solid rgba(0, 255, 0, 0.2);
 }
-.remove-btn { 
-    background: rgba(255, 0, 0, 0.5);
-    color: white;
-    border: 2px solid rgba(255, 0, 0, 0.2);
-}
 .track {
     margin-bottom: 20px;
     display: inline-block;
 }
 .track-header {
+    background: rgba(255, 255, 255, 0.85);
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: inset 0px 0px 3px rgba(0,0,0,0.08);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -104,14 +116,11 @@ canvas {
     padding: 5px;
     border-radius: 6px;
     box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
-}
-
-/* Track header (light mode) */
-.track-header {
-    background: rgba(255, 255, 255, 0.85);
-    padding: 5px;
-    border-radius: 6px;
-    box-shadow: inset 0px 0px 3px rgba(0,0,0,0.08);
+    margin: 0 auto;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
 }
 
 /* Canvas background in light mode */
@@ -132,7 +141,7 @@ body:not(.dark) .track-header button {
     color: black;
 }
 
-body:not(.dark) .track-header button:hover {
+body:not(.dark) .track-header button:not(.remove-btn):hover {
     background: white;
     border-color: rgba(0,0,0,0.25);
 }
@@ -184,6 +193,20 @@ body.dark {
 }
 
 body.dark .controls button {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+body.dark .controls .input_box {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px 18px;
+}
+
+body.dark .controls .input_box input {
     background: rgba(255,255,255,0.15);
     color: white;
     border: 2px solid rgba(255,255,255,0.3);
@@ -256,13 +279,17 @@ body.dark .track-header button {
     color: white;
 }
 
-body.dark .track-header button:hover {
+body.dark .track-header button:not(.remove-btn):hover {
     background: rgba(255,255,255,0.25);
+}
+
+.track-header .remove-btn:hover {
+    background: rgba(255, 0, 0, 0.5);
+    color: white;
+    border: 2px solid rgba(255, 0, 0, 0.2);
 }
 
 /* Volume slider label text */
 body.dark .volume-slider-value {
     color: white;
 }
-
-
