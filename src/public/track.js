@@ -14,6 +14,85 @@ let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
 let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
+const ws = new WebSocket("wss://" + location.host);
+
+ws.onopen = () => {
+    ws.send(JSON.stringify({
+        type: "join-track",
+        uuid: uuid
+    }))
+}
+
+function getTrackFromSound(sound){
+    let trackExists = false
+    for (let track of tracks){
+        if (track.name == sound){
+            trackExists = true
+            return {trackToUpdate: track, trackExists};
+        }
+    }
+    sound = sound.split('/')[0];
+    let instrumentBtn = document.querySelector(`[data-instrument="${sound}"]`);
+    return {trackToUpdate: instrumentBtn, trackExists}
+}
+
+ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type == 'track-capacity') {
+        alert(msg.message);
+        window.location.replace('/');
+        return;
+    }
+    if (msg.uuid != uuid) return;
+    if (msg.type == 'note-added') {
+        // A note was added update the canvas.
+        let payload = msg.payload;
+        let time = payload.time;
+        let pitch = payload.pitch
+        const {trackToUpdate, trackExists} = getTrackFromSound(payload.sound);
+        if (trackExists){
+            trackToUpdate.notes.push({time, pitch});
+            trackToUpdate.ctx.fillStyle = trackToUpdate.color;
+            trackToUpdate.ctx.fillRect(time, pitch, gridSize, gridSize);
+            drawGrid(trackToUpdate.ctx, trackToUpdate.pitchCount);
+        }else{
+            let instrumentColor = trackToUpdate.dataset.color;
+            rebuildTrack(trackToUpdate, payload.sound, instrumentColor, payload.pitch_count, [payload]);
+        }
+    }else if (msg.type == 'instrument-deleted'){
+        // An instrument was either cleared or removed, update.
+        let payload = msg.payload;
+        let deleteType = msg.deleteType;
+        const {trackToUpdate, trackExists} = getTrackFromSound(payload);
+        if (deleteType === 'clear' && trackExists){
+            initCanvas(trackToUpdate, trackToUpdate.pitchCount);
+        }else if (deleteType === 'remove' && trackExists) {
+            tracksContainer.removeChild(trackToUpdate.element);
+            let trackIdx = tracks.indexOf(trackToUpdate);
+            tracks.splice(trackIdx, 1);
+        }else {
+            return;
+        }
+
+    }else if (msg.type == 'sounds-deleted'){
+        // A sound was deleted, turn the square white.
+        let payload = msg.payload;
+        const {trackToUpdate, trackExists} = getTrackFromSound(payload[0].sound);
+        trackToUpdate.ctx.fillStyle = "white";
+        for (let row of payload){
+            trackToUpdate.ctx.fillRect(row.time, row.pitch, gridSize, gridSize);
+        }
+        drawGrid(trackToUpdate.ctx, trackToUpdate.pitchCount);
+    }else if (msg.type == 'track-deleted'){
+        // Completely clear the workspace remove all tracks.
+        let payload = msg.payload;
+        for (let track of tracks){
+            initCanvas(track, track.pitchCount);
+        }
+    }else{
+        return;
+    }
+};
 
 function noteToFrequency(semitoneOffsetFromA4) {
   return 440 * Math.pow(2, semitoneOffsetFromA4 / 12);
@@ -118,7 +197,7 @@ function buildTrack(btn, name, color, pitchCount){
     clearBtn.addEventListener('click', () => {
         pauseAllTracks();
         initCanvas(track);
-        deleteSound(uuid, track.name);
+        deleteSound(uuid, track.name, 'clear');
     });
 
     removeBtn.addEventListener('click', () => {
@@ -127,7 +206,7 @@ function buildTrack(btn, name, color, pitchCount){
         tracksContainer.removeChild(trackDiv);
         let trackIdx = tracks.indexOf(track);
         tracks.splice(trackIdx, 1);
-        deleteSound(uuid, track.name);
+        deleteSound(uuid, track.name, 'remove');
     });
     
     playTrackBtn.addEventListener('click', () => {
@@ -163,8 +242,8 @@ function buildTrack(btn, name, color, pitchCount){
     return track;
 }
 
-function drawGrid(ctx){
-    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
+function drawGrid(ctx, pitchCount){
+    let maxCanvasHeight = canvasHeight * pitchCount;
 
     ctx.strokeStyle = '#ddd';
     ctx.lineWidth = 1;
@@ -185,12 +264,12 @@ function drawGrid(ctx){
 }
 
 
-function initCanvas(track){
+function initCanvas(track, pitchCount){
     let ctx = track.ctx;
-    let maxCanvasHeight = canvasHeight * Number(document.getElementById("row-count-input").max)
+    let maxCanvasHeight = canvasHeight * pitchCount;
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvasWidth, maxCanvasHeight);
-    drawGrid(ctx)
+    drawGrid(ctx, pitchCount)
     track.notes = [];
 }
 
@@ -199,13 +278,13 @@ function addTrack(instrumentBtn, instrumentName, instrumentColor){
     let pitchCount = Number(document.getElementById("row-count-input").value);
     let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
     tracks.push(track);
-    initCanvas(track);
+    initCanvas(track, pitchCount);
     canvasEvents(track);
 }
 
 export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount, notes){
     let track = buildTrack(instrumentBtn, instrumentName, instrumentColor, pitchCount);
-    initCanvas(track);
+    initCanvas(track, pitchCount);
     canvasEvents(track);
     track.notes = notes;
     tracks.push(track);
@@ -213,11 +292,14 @@ export function rebuildTrack(instrumentBtn, instrumentName, instrumentColor, pit
     for (let note of notes){
         track.ctx.fillRect(note.time, note.pitch, gridSize, gridSize);
     }
-    instrumentBtn.disabled = true;
 }
 
-function deleteSound(uuid, sound){
-    fetch(`sounds/track/${uuid}/${encodeURIComponent(sound)}`, { method: "DELETE" }).then((response) => {
+function deleteSound(uuid, sound, deleteType){
+    fetch(`sounds/track/${uuid}/${encodeURIComponent(sound)}`, { 
+        method: "DELETE", 
+        headers: {"Content-Type": "application/json"}, 
+        body: JSON.stringify({ deleteType: deleteType })
+    }).then((response) => {
         response.json().then((body) => {
             console.log("Deleted: ", body)
         }).catch(error => {
@@ -289,7 +371,7 @@ function canvasEvents(track){
             saveNote({"uuid": uuid, "sound": track.name, "time": time, "pitch": pitch, "pitch_count": track.pitchCount})      
         }
         track.ctx.fillRect(time, pitch, gridSize, gridSize);
-        drawGrid(track.ctx);
+        drawGrid(track.ctx, track.pitchCount);
     });
 }
 
@@ -349,6 +431,12 @@ function showInstrumentFiles(instrumentName) {
     btn.dataset.instrument = `${instrumentName}/${file}`;
     btn.dataset.color = color;
     btn.textContent = file;
+    for (let track of tracks) {
+        if (track.name == btn.dataset.instrument){
+            btn.disabled = true
+            break;
+        }
+    }
 
     btn.addEventListener('click', () => {
       btn.disabled = true;
@@ -363,11 +451,13 @@ function showInstrumentFiles(instrumentName) {
 await loadOneshots();
 
 clearAllBtn.addEventListener('click', () => {
-    for(let track of tracks){
-        initCanvas(track);
+    if (confirm('Are you sure you want to clear all tracks?\nThis action is permanent and will affect all users.')){
+        for(let track of tracks){
+            initCanvas(track);
+        }
+        pauseAllTracks();
+        deleteTrack(uuid);
     }
-    pauseAllTracks();
-    deleteTrack(uuid);
 });
 
 async function loadSound(url) {
