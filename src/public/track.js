@@ -593,7 +593,7 @@ playAllBtn.addEventListener('click', () => {
     playSequence(sequence);
     intervalId = setInterval(() => {
         playSequence(sequence);
-    }, 1000 * secondsPerBeat * 60);
+    }, 1000 * secondsPerBeat * 64);
 });
 
 function pauseAllTracks(){
