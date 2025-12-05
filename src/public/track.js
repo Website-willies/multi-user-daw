@@ -14,7 +14,7 @@ let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
 let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
-const ws = new WebSocket("wss://" + location.host);
+const ws = new WebSocket("ws://" + location.host);
 
 ws.onopen = () => {
     ws.send(JSON.stringify({
@@ -448,7 +448,33 @@ function showInstrumentFiles(instrumentName) {
   });
 }
 
+function buildHiddenInstrumentButtons() {
+    // instrumentData is already loaded by loadOneshots()
+    instrumentData.forEach(({ instrument, files }) => {
+
+        // Create a hidden button for the category itself
+        let catBtn = document.createElement("button");
+        catBtn.classList.add("instrument-btn");
+        catBtn.dataset.instrument = instrument;
+        catBtn.dataset.color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+        catBtn.style.display = "none";
+        document.body.appendChild(catBtn);
+
+        // Create hidden buttons for each file inside the category
+        files.forEach(file => {
+            let btn = document.createElement("button");
+            btn.classList.add("instrument-btn");
+            btn.dataset.instrument = `${instrument}/${file}`;
+            btn.dataset.color = `rgb(${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)}, ${Math.floor(Math.random()*256)})`;
+            btn.style.display = "none";
+            document.body.appendChild(btn);
+        });
+
+    });
+}
+
 await loadOneshots();
+buildHiddenInstrumentButtons();
 
 clearAllBtn.addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all tracks?\nThis action is permanent and will affect all users.')){
