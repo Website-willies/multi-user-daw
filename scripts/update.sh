@@ -4,11 +4,20 @@ set -e
 cd /srv/multi-user-daw
 
 git fetch origin main
-git checkout main
-git reset --hard origin/main
 
-npm ci
+LOCAL=$(git rev-parse main)
+REMOTE=$(git rev-parse origin/main)
 
-npm run migrate-up
+if [ "$LOCAL" != "$REMOTE" ]; then
+    echo "Deploying..."
 
-systemctl restart multiuserdaw
+    git checkout main
+    git reset --hard origin/main
+
+    npm ci
+    npm run migrate-up
+    systemctl restart multiuserdaw
+
+else
+    echo "No new commits."
+fi
