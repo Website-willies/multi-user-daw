@@ -14,7 +14,7 @@ let beatDivisions = 2;
 let secondsPerBeat = (60 / bpm) / beatDivisions;
 let oneshotsPath = "/oneshots/";
 let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
-const ws = new WebSocket("ws://" + location.host);
+const ws = new WebSocket("wss://" + location.host);
 
 ws.onopen = () => {
     ws.send(JSON.stringify({
