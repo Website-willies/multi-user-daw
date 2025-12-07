@@ -515,7 +515,9 @@ async function playSequence(events) {
     const urls = events.map(e => e.url);
 
     for (const url of urls) {
-        buffers[url] = await loadSound(url);
+        if (!buffers.hasOwnProperty(url)){
+            buffers[url] = await loadSound(url);
+        }
     }
 
     const startTime = audioCtx.currentTime;
