@@ -718,7 +718,9 @@ downloadMixBtn.addEventListener('click', async () => {
     const buffers = {};
     const urls = [...new Set(events.map(e => e.url))];
     for (const url of urls) {
-        buffers[url] = await loadSound(url);
+        if (!buffers.hasOwnProperty(url)){
+            buffers[url] = await loadSound(url);
+        }
     }
 
     const duration = Math.max(...events.map(e => e.time)) * secondsPerBeat + 2;
