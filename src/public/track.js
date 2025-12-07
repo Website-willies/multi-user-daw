@@ -16,6 +16,18 @@ let oneshotsPath = "/oneshots/";
 let uuid = new URLSearchParams(window.location.search).get("uuid") || "";
 const ws = new WebSocket("wss://" + location.host);
 
+const bufferCache = {};
+
+window.addEventListener("load", async () => {
+    const res = await fetch('/oneshot-paths');
+    const files = await res.json()
+    preloadSounds(files);
+});
+
+async function preloadSounds(urls) {
+    await Promise.all(urls.map(loadSound));
+}
+
 ws.onopen = () => {
     ws.send(JSON.stringify({
         type: "join-track",
@@ -487,9 +499,14 @@ clearAllBtn.addEventListener('click', () => {
 });
 
 async function loadSound(url) {
-    const res = await fetch(url);
-    const buffer = await res.arrayBuffer();
-    return await audioCtx.decodeAudioData(buffer);
+    if (bufferCache[url]) return bufferCache[url];
+
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+
+    bufferCache[url] = decoded;
+    return decoded;
 }
 
 async function updateBPMAndDivisions(){
@@ -509,22 +526,11 @@ async function playSequence(events) {
     }
     activeSources = [];
 
-    const buffers = {};
-
-    // oneshots should already be sorted by timestep in the sql query
-    const urls = events.map(e => e.url);
-
-    for (const url of urls) {
-        if (!buffers.hasOwnProperty(url)){
-            buffers[url] = await loadSound(url);
-        }
-    }
-
     const startTime = audioCtx.currentTime;
 
     for (const e of events) {
         const src = audioCtx.createBufferSource();
-        src.buffer = buffers[e.url];
+        src.buffer = bufferCache[e.url];
         src.playbackRate.value = e.pitch;
         const gainNode = audioCtx.createGain();
         gainNode.gain.value = e.volume ?? 1.0;

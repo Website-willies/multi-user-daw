@@ -46,6 +46,26 @@ app.get("/list-oneshots", (req, res) => {
   }
 });
 
+app.get('/oneshot-paths', (req, res) => {
+  try {
+    const urls = fs.readdirSync(oneshotsPath, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .flatMap(dir => {
+        const instrumentFolder = dir.name;
+        const files = fs.readdirSync(path.join(oneshotsPath, instrumentFolder))
+          .filter(f => f.endsWith(".wav"))
+          .map(f => `/oneshots/${instrumentFolder}/${f}`);
+        return files;
+      });
+
+    res.json(urls);
+
+  } catch (err) {
+    console.error("Error reading oneshots:", err);
+    res.status(500).json({ error: "Failed to read oneshots" });
+  }
+})
+
 server.listen(port, hostname, () => {
   console.log(`http://${hostname}:${port}`);
 });
